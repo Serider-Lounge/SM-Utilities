@@ -1,0 +1,8 @@
+*.inc
+!include/heapons/*
+
+*.smx
+*.log
+*.exe
+*.bat
+*.sh

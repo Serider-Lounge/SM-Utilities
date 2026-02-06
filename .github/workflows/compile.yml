@@ -1,0 +1,51 @@
+name: Compile SourceMod Plugins
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        sm-version: '1.13.x'
+
+    name: Build with SM ${{ matrix.sm-version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SourcePawn
+        uses: rumblefrog/setup-sp@master
+        with:
+          version: ${{ matrix.sm-version }}
+
+      - name: Download dependencies
+        run: |
+          mkdir -p include/multicolors
+          curl -sSL https://raw.githubusercontent.com/Bara/Multi-Colors/refs/heads/master/addons/sourcemod/scripting/include/multicolors.inc -o include/multicolors.inc
+          curl -sSL https://raw.githubusercontent.com/Bara/Multi-Colors/refs/heads/master/addons/sourcemod/scripting/include/multicolors/colors.inc -o include/multicolors/colors.inc
+          curl -sSL https://raw.githubusercontent.com/Bara/Multi-Colors/refs/heads/master/addons/sourcemod/scripting/include/multicolors/morecolors.inc -o include/multicolors/morecolors.inc
+          curl -sSL https://raw.githubusercontent.com/arthurdead/sm-plugins/refs/heads/master/addons/sourcemod/scripting/include/trainingmsg.inc -o include/trainingmsg.inc
+
+      - name: Compile plugins
+        run: |
+          mkdir -p build
+          for plugin in *.sp; do
+            echo "Compiling $plugin..."
+            spcomp -iinclude "$plugin" -o "build/${plugin%.sp}.smx"
+          done
+
+      - name: Get commit SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Package plugins
+        run: |
+          cd build
+          zip -r "../SM Utilities (${{ steps.vars.outputs.sha_short }}).zip" *.smx
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sm-utilities-${{ steps.vars.outputs.sha_short }}
+          path: SM Utilities (${{ steps.vars.outputs.sha_short }}).zip
