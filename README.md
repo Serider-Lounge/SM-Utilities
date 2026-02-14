@@ -11,6 +11,7 @@ Useful commands and includes for server owners & plugin developers alike.
 | `chat.inc` | Chat utilities |
 | `steam.inc` | Steam utilities |
 | `tf2.inc` | Team Fortress 2 utilities<br>ℹ️ Compatible with [mods](https://store.steampowered.com/mods/440/) too!|
+| `shared.inc` | Source Engine utilities |
 
 # Plugins
 ## <img src="https://shared.fastly.steamstatic.com/community_assets/images/apps/3545060/08607ace82bfb52cf8993efe88c2ef00fa25c96f.ico" width="24" height="24" style="vertical-align: text-bottom;"> TF2 Classified Tools
@@ -31,6 +32,9 @@ Useful commands and includes for server owners & plugin developers alike.
 | sm_getattr / sm_getattribute | `[target] <attribute>` | Get attribute value from player |
 | sm_fireinput | `<target> <input> <value>` | Fire entity input on player |
 | sm_hint | `<target> <message> <duration> [icon]` | Show instructor hint to player |
+| sm_addcond | `[target] <condition> [duration]` | Add condition to player |
+| sm_removecond | `[target] <condition>` | Remove condition from player |
+
 
 ### Player Commands
 
@@ -67,3 +71,11 @@ Removed `FCVAR_CHEATS` flags off the following commands:
 | sm_nav_generate |
 | sm_nav_generate_incremental |
 | bot_kick |
+
+## 🖥️ Server Utilities
+
+Automatically reconnects clients on server restart.
+
+## ⚔️ Friendly-Fire
+
+Automatically toggles friendly-fire between rounds for supported games.
