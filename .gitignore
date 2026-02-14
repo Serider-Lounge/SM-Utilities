@@ -1,5 +1,5 @@
 *.inc
-!include/heapons/*
+!include/serider/*
 
 *.smx
 *.log

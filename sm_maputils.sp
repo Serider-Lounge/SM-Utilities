@@ -5,7 +5,7 @@
 #include <trainingmsg>
 #define REQUIRE_PLUGIN
 
-#include <heapons/steam>
+#include <serider/steam>
 
 #define PLUGIN_PREFIX "{#4C4C4C}[{#F69E1D}Source{#5596CF}Mod{#4C4C4C}]\x01"
 

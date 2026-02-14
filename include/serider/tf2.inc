@@ -1,4 +1,4 @@
-#include <heapons/steam>
+#include <serider/steam>
 
 #include <tf2_stocks>
 
@@ -145,12 +145,12 @@ const TFClassType TFClass_Mercenary = view_as<TFClassType>(10);
 const TFTeam TFTeam_Green = view_as<TFTeam>(4);
 const TFTeam TFTeam_Yellow = view_as<TFTeam>(5);
 
-methodmap TFEntity < Entity
+methodmap TFPlayer < Entity
 {
     /*
-    public TFEntity(int entity)
+    public TFPlayer(int entity)
     {
-        return view_as<TFEntity>(entity);
+        return view_as<TFPlayer>(entity);
     }
 
     property int index
@@ -285,7 +285,7 @@ methodmap TFEntity < Entity
         }
     }
 
-    property bool glow_enabled
+    property bool glow
     {
         public get()
         {
@@ -315,11 +315,6 @@ methodmap TFEntity < Entity
     public bool IsArenaSpectator()
     {
         return view_as<bool>(GetEntProp(this.index, Prop_Send, "m_bArenaSpectator"));
-    }
-
-    public bool AcceptInput(const char[] input, any ...)
-    {
-        return AcceptEntityInput(this.index, input);
     }
 
     public bool SetCustomModel(const char[] model, any ...)

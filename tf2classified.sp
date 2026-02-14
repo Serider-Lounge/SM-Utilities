@@ -4,10 +4,10 @@
 #include <regex>
 #include <entitylump>
 
-#include <heapons/shared>
+#include <serider/shared>
 
 #undef REQUIRE_EXTENSIONS
-#include <heapons/tf2>
+#include <serider/tf2>
 #define REQUIRE_EXTENSIONS
 
 #define PLUGIN_PREFIX "{#4C4C4C}[{#F69E1D}Source{#5596CF}Mod{#4C4C4C}]\x01"
@@ -262,7 +262,7 @@ public void OnMapStart()
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
-    TFEntity player = Entity(client);
+    TFPlayer player = Entity(client);
 
     // Third-Person
     CreateTimer(0.1, Timer_Event_PlayerSpawn, client, TIMER_FLAG_NO_MAPCHANGE);
@@ -270,7 +270,7 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 
 public Action Timer_Event_PlayerSpawn(Handle timer, int client)
 {
-    TFEntity player = Entity(client);
+    TFPlayer player = Entity(client);
     player.SetForcedTauntCam(g_ThirdPerson[client]);
     return Plugin_Stop;
 }
@@ -349,7 +349,7 @@ public Action Command_SetTeam(int client, int args)
         Format(teamName, sizeof(teamName), "\x07CCCCCC%s\x01", teamName);
     }
 
-    TFEntity target;
+    TFPlayer target;
     if (targetCount > 1)
     {
         for (int i = 0; i < targetCount; i++)
@@ -428,7 +428,7 @@ public Action Command_AddAttribute(int client, int args)
         return Plugin_Handled;
     }
 
-    TFEntity target;
+    TFPlayer target;
     for (int i = 0; i < targetCount; i++)
     {
         target = Entity(targets[i]);
@@ -483,7 +483,7 @@ public Action Command_RemoveAttribute(int client, int args)
         return Plugin_Handled;
     }
 
-    TFEntity target;
+    TFPlayer target;
     for (int i = 0; i < targetCount; i++)
     {
         target = Entity(targets[i]);
@@ -538,7 +538,7 @@ public Action Command_GetAttribute(int client, int args)
         return Plugin_Handled;
     }
 
-    TFEntity target;
+    TFPlayer target;
     for (int i = 0; i < targetCount; i++)
     {
         target = Entity(targets[i]);
@@ -597,7 +597,7 @@ public Action Command_AddCondition(int client, int args)
         return Plugin_Handled;
     }
 
-    TFEntity target;
+    TFPlayer target;
     for (int i = 0; i < targetCount; i++)
     {
         target = Entity(targets[i]);
@@ -654,7 +654,7 @@ public Action Command_RemoveCondition(int client, int args)
         return Plugin_Handled;
     }
 
-    TFEntity target;
+    TFPlayer target;
     for (int i = 0; i < targetCount; i++)
     {
         target = Entity(targets[i]);
@@ -711,7 +711,7 @@ public Action Command_Currency(int client, int args)
         return Plugin_Handled;
     }
 
-    TFEntity target;
+    TFPlayer target;
     for (int i = 0; i < targetCount; i++)
     {
         target = Entity(targets[i]);
@@ -768,7 +768,7 @@ public Action Command_Scale(int client, int args)
         return Plugin_Handled;
     }
 
-    TFEntity target;
+    TFPlayer target;
     for (int i = 0; i < targetCount; i++)
     {
         target = Entity(targets[i]);
@@ -825,7 +825,7 @@ public Action Command_Health(int client, int args)
         return Plugin_Handled;
     }
 
-    TFEntity target;
+    TFPlayer target;
     for (int i = 0; i < targetCount; i++)
     {
         target = Entity(targets[i]);
@@ -882,7 +882,7 @@ public Action Command_MaxHealth(int client, int args)
         return Plugin_Handled;
     }
 
-    TFEntity target;
+    TFPlayer target;
     for (int i = 0; i < targetCount; i++)
     {
         target = Entity(targets[i]);
@@ -995,7 +995,7 @@ public Action Command_SetClass(int client, int args)
         return Plugin_Handled;
     }
 
-    TFEntity target;
+    TFPlayer target;
     if (targetCount > 1)
     {
         for (int i = 0; i < targetCount; i++)
@@ -1053,7 +1053,7 @@ public Action Command_FireInput(int client, int args)
         return Plugin_Handled;
     }
 
-    TFEntity target;
+    TFPlayer target;
     for (int i = 0; i < targetCount; i++)
     {
         target = Entity(targets[i]);
@@ -1107,7 +1107,7 @@ public Action Command_Respawn(int client, int args)
         return Plugin_Handled;
     }
 
-    TFEntity target;
+    TFPlayer target;
     for (int i = 0; i < targetCount; i++)
     {
         target = Entity(targets[i]);
@@ -1133,7 +1133,7 @@ public Action Command_FirstPerson(int client, int args)
         return Plugin_Handled;
         
     g_ThirdPerson[client] = false;
-    TFEntity player = Entity(client);
+    TFPlayer player = Entity(client);
     player.SetForcedTauntCam(false);
     
     CReplyToCommand(client, PLUGIN_PREFIX ... " Set view to \x04First-Person");
@@ -1146,7 +1146,7 @@ public Action Command_ThirdPerson(int client, int args)
         return Plugin_Handled;
         
     g_ThirdPerson[client] = true;
-    TFEntity player = Entity(client);
+    TFPlayer player = Entity(client);
     player.SetForcedTauntCam(true);
     
     CReplyToCommand(client, PLUGIN_PREFIX ... " Set view to \x04Third-Person");
@@ -1204,7 +1204,7 @@ public Action Command_HintSay(int client, int args)
 
     for (int i = 0; i < targetCount; i++)
     {
-        TFEntity target = Entity(targets[i]);
+        TFPlayer target = Entity(targets[i]);
         if (!IsClientInGame(target.index))
         {
             continue;
@@ -1295,7 +1295,7 @@ public bool TargetFilter_YellowTeam(const char[] pattern, ArrayList clients, int
 
 public bool TargetFilter_Civilians(const char[] pattern, ArrayList clients, int client)
 {
-    TFEntity target;
+    TFPlayer target;
     for (int i = 1; i <= MaxClients; i++)
     {
         target = Entity(i);

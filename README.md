@@ -4,7 +4,7 @@ Useful commands and includes for server owners & plugin developers alike.
 ### [[Download Here](https://github.com/Serider-Lounge/SM-Utilities/actions)]
 
 # Includes
-## Heapons
+## Serider
 
 | Include | Description |
 |---------|-------------|
