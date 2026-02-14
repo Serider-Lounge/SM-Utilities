@@ -29,7 +29,7 @@ public Plugin myinfo =
     name = "SM Utilities | TF2 Classified Tools",
     author = "Heapons",
     description = "Tools and utilities for Team Fortress 2 Classified",
-    version = "26w07a",
+    version = "26w07b",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 
@@ -111,14 +111,16 @@ public void OnMapInit()
         EntityLumpEntry entry;
         char classname[64], buffer[256];
 
+        bool isVScriptVIP = false;
         for (int i = lumpLength - 1; i >= 0; i--)
         {
             entry = EntityLump.Get(i);
 
             if (entry.GetNextKey("classname", classname, sizeof(classname), -1) != -1 && StrEqual(classname, "logic_script", false))
             {
-                if (entry.GetNextKey("vscripts", buffer, sizeof(buffer), -1) != -1 && StrContains(buffer, "vip/vip.nut", false) != -1)
+                if (entry.GetNextKey("vscripts", buffer, sizeof(buffer), -1) != -1 && StrContains(buffer, "vip.nut", false) != -1)
                 {
+                    isVScriptVIP = true;
                     EntityLump.Erase(i);
                     continue;
                 }
@@ -134,14 +136,17 @@ public void OnMapInit()
             }
             CloseHandle(entry);
         }
-        int index = EntityLump.Append();
-        entry = EntityLump.Get(index);
-        entry.Append("classname", "tf2c_logic_vip");
-        entry.Append("blue_escort", "1");
-        entry.Append("show_escort_progress", "1");
-        entry.Append("hud_type", "1");
-        entry.Append("vehicle_type", "2");
-        CloseHandle(entry);
+        if (isVScriptVIP)
+        {
+            int index = EntityLump.Append();
+            entry = EntityLump.Get(index);
+            entry.Append("classname", "tf2c_logic_vip");
+            entry.Append("blue_escort", "1");
+            entry.Append("show_escort_progress", "1");
+            entry.Append("hud_type", "1");
+            entry.Append("vehicle_type", "2");
+            CloseHandle(entry);
+        }
     }
 }
 
