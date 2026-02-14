@@ -23,7 +23,7 @@ public Plugin myinfo =
     name = "SM Utilities | Maps Utilities",
     author = "Heapons",
     description = "Tools and utilities for managing maps",
-    version = "26w06a",
+    version = "26w07a",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 
@@ -105,23 +105,19 @@ public Action Command_ReloadMap(int client, int args)
             TeleportEntity(target, origin, NULL_VECTOR, NULL_VECTOR);
             DispatchSpawn(target);
             
-            int hint = CreateEntityByName("env_instructor_hint");
-            if (hint != -1)
+            Event event = CreateEvent("instructor_server_hint_create", true);
+            if (event != INVALID_HANDLE)
             {
-                char targetIndex[16];
-                IntToString(target, targetIndex, sizeof(targetIndex));
-                
-                DispatchKeyValue(hint, "hint_replace_key", "sm_reloadmap");
-				char caption[64];
-				Format(caption, sizeof(caption), "%t", "Changing map", displayName);
-                DispatchKeyValue(hint, "hint_caption", caption);
-                DispatchKeyValue(hint, "hint_icon_onscreen", "icon_tip");
-                DispatchKeyValue(hint, "hint_icon_offscreen", "icon_tip");
-                DispatchKeyValue(hint, "hint_static", "1");
-                DispatchKeyValue(hint, "hint_timeout", "0");
-                DispatchKeyValue(hint, "hint_target", targetIndex);
-                DispatchSpawn(hint);
-                AcceptEntityInput(hint, "ShowHint");
+                event.SetString("hint_replace_key", "sm_reloadmap");
+                char caption[64];
+                Format(caption, sizeof(caption), "%t", "Changing map", displayName);
+                event.SetString("hint_caption", caption);
+                event.SetString("hint_icon_onscreen", "icon_tip");
+                event.SetString("hint_icon_offscreen", "icon_tip");
+                event.SetString("hint_static", "1");
+                event.SetInt("hint_timeout", 0);
+                event.SetInt("hint_target", target);
+                event.Fire();
             }
         }
 	}
@@ -177,21 +173,17 @@ public Action Command_NavGenerate(int args)
             TeleportEntity(target, origin, NULL_VECTOR, NULL_VECTOR);
             DispatchSpawn(target);
             
-            int hint = CreateEntityByName("env_instructor_hint");
-            if (hint != -1)
+            Event event = CreateEvent("instructor_server_hint_create", true);
+            if (event != INVALID_HANDLE)
             {
-                char targetIndex[16];
-                IntToString(target, targetIndex, sizeof(targetIndex));
-                
-                DispatchKeyValue(hint, "hint_replace_key", "nav_generate");
-                DispatchKeyValue(hint, "hint_caption", "Generating Navigation Mesh...");
-                DispatchKeyValue(hint, "hint_icon_onscreen", "icon_tip");
-                DispatchKeyValue(hint, "hint_icon_offscreen", "icon_tip");
-                DispatchKeyValue(hint, "hint_static", "1");
-                DispatchKeyValue(hint, "hint_timeout", "0");
-                DispatchKeyValue(hint, "hint_target", targetIndex);
-                DispatchSpawn(hint);
-                AcceptEntityInput(hint, "ShowHint");
+                event.SetString("hint_replace_key", "nav_generate");
+                event.SetString("hint_caption", "Generating Navigation Mesh...");
+                event.SetString("hint_icon_onscreen", "icon_tip");
+                event.SetString("hint_icon_offscreen", "icon_tip");
+                event.SetString("hint_static", "1");
+                event.SetInt("hint_timeout", 0);
+                event.SetInt("hint_target", target);
+                event.Fire();
             }
         }
 	}
