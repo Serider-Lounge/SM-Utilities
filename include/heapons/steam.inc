@@ -1,4 +1,4 @@
-methodmap GameInfo
+methodmap App
 {
     /**
      * Gets the app id from gameinfo.txt.

@@ -145,8 +145,9 @@ const TFClassType TFClass_Mercenary = view_as<TFClassType>(10);
 const TFTeam TFTeam_Green = view_as<TFTeam>(4);
 const TFTeam TFTeam_Yellow = view_as<TFTeam>(5);
 
-methodmap TFEntity
+methodmap TFEntity < Entity
 {
+    /*
     public TFEntity(int entity)
     {
         return view_as<TFEntity>(entity);
@@ -167,7 +168,7 @@ methodmap TFEntity
             return GetClientUserId(this.index);
         }
     }
-
+    */
     property int health
     {
         public get()
@@ -334,8 +335,8 @@ methodmap TFEntity
         char[] buffer = new char[len];
         strcopy(buffer, len, script);
 
-        GameInfo game;
-        if (game.appid == 3545060) // Team Fortress 2 Classified
+        App app;
+        if (app.appid == 3545060) // Team Fortress 2 Classified
         {
             StrCat(buffer, len, ";");
         }
@@ -346,7 +347,6 @@ methodmap TFEntity
 
     public bool ForceRespawn()
     {
-        SetEntProp(this.index, Prop_Send, "m_iDesiredPlayerClass", view_as<int>(this.class));
         SetVariantString("self.ForceRespawn()");
         return this.AcceptInput("RunScriptCode");
     }
@@ -409,7 +409,7 @@ methodmap TFEntity
     public bool AddCond(int condition, float duration = -1.0)
     {
         char buffer[64];
-        Format(buffer, sizeof(buffer), "self.AddCond(%d, %f)", condition, duration);
+        Format(buffer, sizeof(buffer), "self.AddCondEx(%d, %f, null)", condition, duration);
         return this.RunScriptCode(buffer);
     }
 
