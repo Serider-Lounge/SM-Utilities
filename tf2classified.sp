@@ -428,21 +428,33 @@ public Action Command_AddAttribute(int client, int args)
         return Plugin_Handled;
     }
 
-    TFPlayer target;
-    for (int i = 0; i < targetCount; i++)
+	for (int i = 0; i < targetCount; i++)
     {
-        target = Entity(targets[i]);
+        int targetIdx = targets[i];
+        TFPlayer target = Entity(targetIdx);
+
         target.AddAttribute(attrName, value, duration);
+
+        for (int slot = 0; slot < 8; slot++)
+        {
+            int weapon = GetPlayerWeaponSlot(targetIdx, slot);
+            if (weapon > MaxClients && IsValidEntity(weapon))
+            {
+                TFPlayer weaponEnt = Entity(weapon);
+                // Apply the specific attribute to the weapon entity
+                weaponEnt.AddAttribute(attrName, value, duration);
+            }
+        }
     }
 
     if (targetCount > 1)
     {
-        CReplyToCommand(client, PLUGIN_PREFIX ... " Applied \x05%s\x01 to \x04%d\x01 players", attrName, targetCount);
+        CReplyToCommand(client, PLUGIN_PREFIX ... " Applied \x05%s\x01 to \x04%d\x01", attrName, targetCount);
     }
     else
     {
-        target = Entity(targets[0]);
-        CReplyToCommandEx(client, target.index, PLUGIN_PREFIX ... " Applied \x05%s\x01 to \x03%N", attrName, target.index);
+        int targetIdx = targets[0];
+        CReplyToCommandEx(client, targetIdx, PLUGIN_PREFIX ... " Applied \x05%s\x01 to \x03%N\x01", attrName, targetIdx);
     }
 
     return Plugin_Handled;
