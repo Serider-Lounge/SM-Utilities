@@ -1,0 +1,17 @@
+*.inc
+!include/serider/*
+
+*.smx
+*.log
+*.exe
+*.bat
+*.sh
+
+// Ignore some random plugins that are in this repo for convenience
+nuke.sp
+server_explosion.sp
+sm_playerutils.sp
+sm_classutils.sp
+playermodels.sp
+
+configs/**
