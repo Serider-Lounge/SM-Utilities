@@ -1,0 +1,124 @@
+name: Compile SourceMod Plugins
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - README.md
+      - LICENSE
+      - .gitignore
+      - .github/FUNDING.yml
+  pull_request:
+    paths-ignore:
+      - README.md
+      - LICENSE
+      - .gitignore
+      - .github/FUNDING.yml
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        sm-version:
+          - 1.13.7301
+
+    name: Build with SM ${{ matrix.sm-version }}
+    outputs:
+      sha_short: ${{ steps.vars.outputs.sha_short }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SourcePawn
+        uses: rumblefrog/setup-sp@master
+        with:
+          version: ${{ matrix.sm-version }}
+
+      - name: Download dependencies
+        run: |
+          mkdir -p include/multicolors
+          curl -sSL https://raw.githubusercontent.com/Bara/Multi-Colors/refs/heads/master/addons/sourcemod/scripting/include/multicolors.inc -o include/multicolors.inc
+          curl -sSL https://raw.githubusercontent.com/Bara/Multi-Colors/refs/heads/master/addons/sourcemod/scripting/include/multicolors/colors.inc -o include/multicolors/colors.inc
+          curl -sSL https://raw.githubusercontent.com/Bara/Multi-Colors/refs/heads/master/addons/sourcemod/scripting/include/multicolors/morecolors.inc -o include/multicolors/morecolors.inc
+          curl -sSL https://raw.githubusercontent.com/arthurdead/sm-plugins/refs/heads/master/addons/sourcemod/scripting/include/trainingmsg.inc -o include/trainingmsg.inc
+          curl -sSL https://raw.githubusercontent.com/Malifox/tf2attributes/refs/heads/virtual_address/scripting/include/tf2attributes.inc -o include/tf2attributes.inc
+
+      - name: Compile plugins
+        run: |
+          mkdir -p build
+          for plugin in *.sp; do
+            echo "Compiling $plugin..."
+            spcomp -iinclude "$plugin" -o "build/${plugin%.sp}.smx"
+          done
+
+      - name: Get commit SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sm-utilities-build
+          path: build/*.smx
+
+  release:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create and push tag
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git tag auto-${{ github.sha }}
+          git push origin auto-${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: sm-utilities-build
+          path: build
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: auto-${{ github.sha }}
+          name: SM Utilities (${{ needs.build.outputs.sha_short }})
+          body: |
+            ${{ steps.commit_messages.outputs.commits }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get commit messages since last tag
+        id: commit_messages
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"%s" )
+          else
+            COMMITS=$(git log "$LAST_TAG"..HEAD --pretty=format:"%s")
+          fi
+          if [ -z "$COMMITS" ]; then
+            echo "commits=No new commits." >> $GITHUB_OUTPUT
+          else
+            echo "commits=$COMMITS" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/*.smx
+          tag_name: auto-${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

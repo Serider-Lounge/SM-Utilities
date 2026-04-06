@@ -1,0 +1,1 @@
+const TFClassType TFClass_Mercenary = view_as<TFClassType>(10);
