@@ -307,13 +307,15 @@ public void OnMapStart()
             isDecalFile = StrEqual(path[maxlen - 4], ".vmt", false) ||
                           StrEqual(path[maxlen - 4], ".vtf", false);
 
-            PrecacheGeneric(path);
-
-            if (isModelFile)
+            if (StrContains(path, "materials/models") == 0)
+            {
+                continue;
+            }
+            else if (isModelFile)
             {
                 PrecacheModel(path);
             }
-            else if (isDecalFile && !(StrContains(path, "materials/models") == 0))
+            else if (isDecalFile)
             {
                 PrecacheDecal(path);
             }
