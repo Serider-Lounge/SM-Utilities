@@ -530,6 +530,7 @@ methodmap TFPlayer < Entity
 
         char item_class[64];
         int slot = -1;
+        int bucket = -1;
         char item_slot[32];
         if (classname[0] != '\0')
         {
@@ -551,7 +552,6 @@ methodmap TFPlayer < Entity
             strcopy(paths[2], sizeof(paths[]), "scripts/items/custom_items_game.txt");
 
             bool found = false;
-            int bucket = -1;
             for (int i = 0; i < 3 && !found; i++)
             {
                 KeyValues kv = new KeyValues("items_game");
