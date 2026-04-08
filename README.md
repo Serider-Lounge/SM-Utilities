@@ -20,7 +20,7 @@ Useful commands and includes for server owners & plugin developers alike.
 
 | ConVar | Default | Description |
 |--------|---------|-------------|
-| `sm_convert_mobster_vip` | `1` | Convert Mobster VIP to TF2C VIP. |
+| `sm_convert_mobster_vip` | `1` | <img src="https://shared.fastly.steamstatic.com/community_assets/images/apps/3545060/08607ace82bfb52cf8993efe88c2ef00fa25c96f.ico" width="16" height="16" style="vertical-align: text-bottom;"> Convert Mobster VIP to TF2C VIP. |
 | `sm_truce_active` | `0` | Toggle [truce mode](https://wiki.teamfortress.com/wiki/Truce_mode). |
 
 ### Admin Commands
