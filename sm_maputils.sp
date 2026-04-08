@@ -21,7 +21,7 @@ public Plugin myinfo =
     name = "SM Utilities | Maps Utilities",
     author = "Heapons",
     description = "Tools and utilities for managing maps",
-    version = "26w15c",
+    version = "26w15d",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 

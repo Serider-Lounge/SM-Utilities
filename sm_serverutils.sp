@@ -17,7 +17,7 @@ public Plugin myinfo =
     name = "SM Utilities | Server Utilities",
     author = "Heapons",
     description = "Tools and utilities for managing servers",
-    version = "26w15c",
+    version = "26w15d",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 

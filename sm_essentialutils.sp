@@ -42,7 +42,7 @@ public Plugin myinfo =
     name = "SM Utilities | Essentials",
     author = "Heapons",
     description = "Tools and utilities for Source games",
-    version = "26w15c",
+    version = "26w15d",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 

@@ -8,7 +8,7 @@ public Plugin myinfo =
     name = "SM Utilities | Friendly-Fire",
     author = "Heapons",
     description = "Tools and utilities for Team Fortress 2 Classified",
-    version = "26w15c",
+    version = "26w15d",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 
