@@ -42,7 +42,7 @@ public Plugin myinfo =
     name = "SM Utilities | Essentials",
     author = "Heapons",
     description = "Tools and utilities for Source games",
-    version = "26w15b",
+    version = "26w15c",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 
@@ -275,9 +275,7 @@ public void OnMapStart()
         while (listing.GetNext(entry, sizeof(entry), fileType))
         {
             if (StrEqual(entry, ".") || StrEqual(entry, ".."))
-            {
                 continue;
-            }
 
             Format(path, sizeof(path), "%s/%s", dir, entry);
 
@@ -315,7 +313,7 @@ public void OnMapStart()
             {
                 PrecacheModel(path);
             }
-            else if (isDecalFile)
+            else if (isDecalFile && !(StrContains(path, "materials/models") == 0))
             {
                 PrecacheDecal(path);
             }
@@ -328,9 +326,13 @@ public void OnMapStart()
                     strcopy(ext, sizeof(ext), path[dotPos + 1]);
                 }
 
-                if (StrEqual(ext, "wav", false) || StrEqual(ext, "mp3", false))
+                if (StrEqual(ext, "wav") || StrEqual(ext, "mp3") || StrEqual(ext, "ogg"))
                 {
                     PrecacheSound(path);
+                }
+                else
+                {
+                    PrecacheGeneric(path);
                 }
             }
         }
@@ -436,9 +438,9 @@ public Action Command_SetTeam(int client, int args)
 
 public Action Command_AddAttribute(int client, int args)
 {
-    if (args < 1)
+    if (args < 2)
     {
-        ReplyToCommand(client, PLUGIN_PREFIX ... " Usage: sm_addattr [target] <attribute> [value] [duration]");
+        ReplyToCommand(client, PLUGIN_PREFIX ... " Usage: sm_addattr <target> <attribute> [value] [duration] [slot]");
         return Plugin_Handled;
     }
 
@@ -446,33 +448,29 @@ public Action Command_AddAttribute(int client, int args)
     char attrName[64];
     char valueArg[32] = "1.0";
     char durationArg[32] = "-1.0";
+    char slotArg[16];
 
-    switch (args)
-    {
-        case 2:
-        {
-            GetCmdArg(1, targetArg, sizeof(targetArg));
-            GetCmdArg(2, attrName, sizeof(attrName));
-        }
-        case 3:
-        {
-            GetCmdArg(1, targetArg, sizeof(targetArg));
-            GetCmdArg(2, attrName, sizeof(attrName));
-            GetCmdArg(3, valueArg, sizeof(valueArg));
-        }
-        default:
-        {
-            GetCmdArg(1, targetArg, sizeof(targetArg));
-            GetCmdArg(2, attrName, sizeof(attrName));
-            GetCmdArg(3, valueArg, sizeof(valueArg));
-            GetCmdArg(4, durationArg, sizeof(durationArg));
-        }
-    }
+    GetCmdArg(1, targetArg, sizeof(targetArg));
+    GetCmdArg(2, attrName, sizeof(attrName));
+    if (args >= 3)
+        GetCmdArg(3, valueArg, sizeof(valueArg));
+    if (args >= 4)
+        GetCmdArg(4, durationArg, sizeof(durationArg));
+    if (args >= 5)
+        GetCmdArg(5, slotArg, sizeof(slotArg));
 
     float value = StringToFloat(valueArg);
     float duration = StringToFloat(durationArg);
     int attrDefIndex;
     bool useDefIndex = g_bTF2Attributes && StringToIntEx(attrName, attrDefIndex) > 0;
+
+    int slot = -1;
+    bool hasSlot = false;
+    if (slotArg[0] != '\0')
+    {
+        slot = StringToInt(slotArg);
+        hasSlot = true;
+    }
 
     int targets[MAXPLAYERS];
     int targetCount;
@@ -487,19 +485,41 @@ public Action Command_AddAttribute(int client, int args)
         return Plugin_Handled;
     }
 
+    if (StrContains(valueArg, "models/", false) == 0)
+    {
+        PrecacheModel(valueArg, true);
+    }
+
     TFPlayer target;
     for (int i = 0; i < targetCount; i++)
     {
         target = view_as<TFPlayer>(targets[i]);
+        int entity;
+        if (hasSlot)
+        {
+            entity = target.GetWeapon(slot);
+        }
+        else
+        {
+            entity = target.index;
+        }
+
         if (g_bTF2Attributes)
         {
             if (useDefIndex)
             {
-                TF2Attrib_SetByDefIndex(target.index, attrDefIndex, value);
+                TF2Attrib_SetByDefIndex(entity, attrDefIndex, value);
             }
             else
             {
-                TF2Attrib_AddCustomPlayerAttribute(target.index, attrName, value, duration);
+                if (!hasSlot)
+                {
+                    TF2Attrib_AddCustomPlayerAttribute(entity, attrName, value, duration);
+                }
+                else
+                {
+                    TF2Attrib_SetByName(entity, attrName, value);
+                }
             }
         }
         else
@@ -510,7 +530,7 @@ public Action Command_AddAttribute(int client, int args)
 
     if (targetCount > 1)
     {
-        CReplyToCommand(client, PLUGIN_PREFIX ... " Applied \x05%s\x01 to \x04%d\x01 players", attrName, targetCount);
+        CReplyToCommand(client, PLUGIN_PREFIX ... " Applied \x05%s\x01 to \x04%d\x01 targets", attrName, targetCount);
     }
     else
     {
@@ -521,22 +541,37 @@ public Action Command_AddAttribute(int client, int args)
     return Plugin_Handled;
 }
 
+
+
 public Action Command_RemoveAttribute(int client, int args)
 {
-    if (args < 1)
+    if (args < 2)
     {
-        ReplyToCommand(client, PLUGIN_PREFIX ... " Usage: sm_removeattr [target] <attribute>");
+        ReplyToCommand(client, PLUGIN_PREFIX ... " Usage: sm_removeattr <target> <attribute> [slot]");
         return Plugin_Handled;
     }
 
     char targetArg[64];
     char attrName[64];
+    char slotArg[16];
 
     GetCmdArg(1, targetArg, sizeof(targetArg));
     GetCmdArg(2, attrName, sizeof(attrName));
+    if (args >= 3)
+    {
+        GetCmdArg(3, slotArg, sizeof(slotArg));
+    }
 
     int attrDefIndex;
     bool useDefIndex = g_bTF2Attributes && StringToIntEx(attrName, attrDefIndex) > 0;
+
+    int slot = -1;
+    bool hasSlot = false;
+    if (slotArg[0] != '\0')
+    {
+        slot = StringToInt(slotArg);
+        hasSlot = true;
+    }
 
     int targets[MAXPLAYERS];
     int targetCount;
@@ -555,15 +590,32 @@ public Action Command_RemoveAttribute(int client, int args)
     for (int i = 0; i < targetCount; i++)
     {
         target = TFPlayer(targets[i]);
+        int entity;
+        if (hasSlot)
+        {
+            entity = target.GetWeapon(slot);
+        }
+        else
+        {
+            entity = target.index;
+        }
+
         if (g_bTF2Attributes)
         {
             if (useDefIndex)
             {
-                TF2Attrib_RemoveByDefIndex(target.index, attrDefIndex);
+                TF2Attrib_RemoveByDefIndex(entity, attrDefIndex);
             }
             else
             {
-                TF2Attrib_RemoveCustomPlayerAttribute(target.index, attrName);
+                if (!hasSlot)
+                {
+                    TF2Attrib_RemoveCustomPlayerAttribute(entity, attrName);
+                }
+                else
+                {
+                    TF2Attrib_RemoveByName(entity, attrName);
+                }
             }
         }
         else
@@ -574,11 +626,11 @@ public Action Command_RemoveAttribute(int client, int args)
 
     if (targetCount > 1)
     {
-        CReplyToCommand(client, PLUGIN_PREFIX ... " Removed \x05%s\x01 from \x04%d\x01 players", attrName, targetCount);
+        CReplyToCommand(client, PLUGIN_PREFIX ... " Removed \x05%s\x01 from \x04%d\x01 targets", attrName, targetCount);
     }
     else
     {
-            target = TFPlayer(targets[0]);
+        target = TFPlayer(targets[0]);
         CReplyToCommandEx(client, target.index, PLUGIN_PREFIX ... " Removed \x05%s\x01 from \x03%N", attrName, target.index);
     }
 
