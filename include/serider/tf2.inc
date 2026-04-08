@@ -216,6 +216,19 @@ methodmap TFPlayer < Entity
     }
 
     /**
+     * Gets the player's active conditions as a bitmask.
+     * 
+     * @return Bitmask of active conditions.
+     */
+    property TFCond condition
+    {
+        public get()
+        {
+            return view_as<TFCond>(GetEntProp(this.index, Prop_Send, "m_nPlayerCond")|GetEntProp(this.index, Prop_Send, "_condition_bits")|GetEntProp(this.index, Prop_Send, "m_nPlayerCondEx")<<32|GetEntProp(this.index, Prop_Send, "m_nPlayerCondEx2")<<64|GetEntProp(this.index, Prop_Send, "m_nPlayerCondEx3")<<96|GetEntProp(this.index, Prop_Send, "m_nPlayerCondEx4")<<128);
+        }
+    }
+
+    /**
      * Gets or sets the player's render color (RGB as int).
      *
      * @return Render color as 0xRRGGBB.
@@ -478,6 +491,24 @@ methodmap TFPlayer < Entity
         return this.RunScriptCode(buffer);
     }
 
+    /**
+     * Check whether or not a condition is set on a player
+     *
+     * @param client        Player's index.
+     * @param cond          TFCond constant
+     * @return              True if set, false otherwise
+     */
+    public bool IsInCondition(TFCond condition)
+    {
+        return TF2_IsPlayerInCondition(this.index, condition);
+    }
+
+    /**
+     * Regenerates the player's health and ammo.
+     * 
+     * @param refill_health_ammo    If true, refills health and ammo.
+     * @return                      True if input was accepted, false otherwise.
+     */
     public bool Regenerate(bool refill_health_ammo)
     {
         char buffer[32];
@@ -520,11 +551,9 @@ methodmap TFPlayer < Entity
             strcopy(paths[2], sizeof(paths[]), "scripts/items/custom_items_game.txt");
 
             bool found = false;
+            int bucket = -1;
             for (int i = 0; i < 3 && !found; i++)
             {
-                if (!FileExists(paths[i]))
-                    continue;
-
                 KeyValues kv = new KeyValues("items_game");
                 if (!kv.ImportFromFile(paths[i]))
                 {
@@ -543,7 +572,11 @@ methodmap TFPlayer < Entity
                         kv.GetString("item_class", item_class, sizeof(item_class));
                     }
 
-                    if (kv.GetDataType("item_slot") != KvData_None)
+                    if (kv.GetDataType("bucket") != KvData_None)
+                    {
+                        bucket = kv.GetNum("bucket", -1);
+                    }
+                    else if (kv.GetDataType("item_slot") != KvData_None)
                     {
                         kv.GetString("item_slot", item_slot, sizeof(item_slot));
                     }
@@ -560,7 +593,11 @@ methodmap TFPlayer < Entity
             }
         }
 
-        if (item_slot[0] != '\0')
+        if (bucket != -1)
+        {
+            slot = bucket;
+        }
+        else if (item_slot[0] != '\0')
         {
             if (StrEqual(item_slot, "primary"))
             {
@@ -607,7 +644,7 @@ methodmap TFPlayer < Entity
         // Cleanup the previous weapon if it shares a slot with the new weapon
         if (slot >= TFWeaponSlot_Primary && slot <= TFWeaponSlot_Item2)
         {
-            if (StrContains(item_class, "revolver") != -1 || StrContains(item_class, "tranq") != -1)
+            if (bucket == -1 && (StrContains(item_class, "revolver") != -1 || StrContains(item_class, "tranq") != -1))
             {
                 this.RemoveWeapon(TFWeaponSlot_Primary);
             }
