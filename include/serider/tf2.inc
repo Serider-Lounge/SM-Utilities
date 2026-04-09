@@ -158,7 +158,7 @@ methodmap TFPlayer < Entity
     }
 
     /**
-     * Gets or sets the player's currency (Mann vs. Machine).
+     * Gets or sets the player's currency.
      *
      * @return Currency value.
      */
@@ -171,6 +171,18 @@ methodmap TFPlayer < Entity
         public set(int value)
         {
             SetEntProp(this.index, Prop_Send, "m_nCurrency", value < 0 ? 0 : value > 30000 ? 30000 : value);
+        }
+    }
+
+    property int hidehud
+    {
+        public get()
+        {
+            return GetEntProp(this.index, Prop_Send, "m_iHideHUD");
+        }
+        public set(int flags)
+        {
+            SetEntProp(this.index, Prop_Send, "m_iHideHUD", flags);
         }
     }
 
@@ -532,6 +544,20 @@ methodmap TFPlayer < Entity
         int slot = -1;
         int bucket = -1;
         char item_slot[32];
+
+        char mapName[96], mapSchema[PLATFORM_MAX_PATH];
+        GetCurrentMap(mapName, sizeof(mapName));
+        Format(mapSchema, sizeof(mapSchema), "scripts/items/%s_items_game.txt", mapName);
+
+        char paths[4][PLATFORM_MAX_PATH];
+        // Shared
+        strcopy(paths[0], sizeof(paths[]), "scripts/items/items_game.txt");
+        // Fortress Connected
+        strcopy(paths[1], sizeof(paths[]), "scripts/items/items_custom.txt");
+        // Team Fortress 2 Classified
+        strcopy(paths[2], sizeof(paths[]), mapSchema);
+        strcopy(paths[3], sizeof(paths[]), "scripts/items/custom_items_game.txt");
+
         if (classname[0] != '\0')
         {
             strcopy(item_class, sizeof(item_class), classname);
@@ -541,18 +567,8 @@ methodmap TFPlayer < Entity
             char itemKey[16];
             IntToString(index, itemKey, sizeof(itemKey));
 
-            char paths[3][PLATFORM_MAX_PATH];
-            strcopy(paths[0], sizeof(paths[]), "scripts/items/items_game.txt");
-            
-            char mapName[64], mapPath[PLATFORM_MAX_PATH];
-            GetCurrentMap(mapName, sizeof(mapName));
-            Format(mapPath, sizeof(mapPath), "scripts/items/%s_items_game.txt", mapName);
-            strcopy(paths[1], sizeof(paths[]), mapPath);
-            
-            strcopy(paths[2], sizeof(paths[]), "scripts/items/custom_items_game.txt");
-
             bool found = false;
-            for (int i = 0; i < 3 && !found; i++)
+            for (int i = 0; i < sizeof(paths) && !found; i++)
             {
                 KeyValues kv = new KeyValues("items_game");
                 if (!kv.ImportFromFile(paths[i]))
