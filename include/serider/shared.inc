@@ -204,3 +204,71 @@ methodmap Entity
         return GetEntPropString(this.index, Prop_Data, "m_ModelName", buffer, maxlen);
     }
 }
+
+/**
+ * Displays a text message above an entity.
+ * 
+ * @param entity    Entity index to display text above.
+ * @param color     Text color as an array of 4 integers (RGBA).
+ * @param message   Text message to display.
+ * @param offset    Offset from the entity's origin to display the text at.
+ * @param size      Text size.
+ * @return          Entity index of the created point_worldtext, or -1 on failure.
+ */
+stock int DisplayText(int entity, color[4] = {255, 255, 255, 255}, const char[] message = "", float offset[3] = {0.0, 0.0, 0.0}, int size = 8)
+{
+    if (entity == -1 || !IsValidEntity(entity))
+    {
+        return -1;
+    }
+
+    int point_worldtext = CreateEntityByName("point_worldtext");
+    if (point_worldtext == -1)
+    {
+        return -1;
+    }
+
+    char colorString[32];
+    Format(colorString, sizeof(colorString), "%d %d %d %d", color[0], color[1], color[2], color[3]);
+
+    char text[64];
+    if (message[0] != '\0')
+    {
+        strcopy(text, sizeof(text), message);
+    }
+    else
+    {
+        strcopy(text, sizeof(text), "Leader");
+    }
+
+    DispatchKeyValue(point_worldtext, "message", text);
+    DispatchKeyValue(point_worldtext, "font", "0");
+    char textsize[16];
+    IntToString(size, textsize, sizeof(textsize));
+    DispatchKeyValue(point_worldtext, "textsize", textsize);
+    DispatchKeyValue(point_worldtext, "orientation", "1");
+
+    float origin[3];
+    GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
+    origin[0] += offset[0];
+    origin[1] += offset[1];
+    origin[2] += offset[2];
+    TeleportEntity(point_worldtext, origin, NULL_VECTOR, NULL_VECTOR);
+
+    DispatchSpawn(point_worldtext);
+    ActivateEntity(point_worldtext);
+
+    SetVariantString(colorString);
+    AcceptEntityInput(point_worldtext, "SetColor");
+
+    SetVariantString("!activator");
+    AcceptEntityInput(point_worldtext, "SetParent", entity);
+
+    if (entity > 0 && entity <= MaxClients)
+    {
+        SetVariantString("head");
+        AcceptEntityInput(point_worldtext, "SetParentAttachmentMaintainOffset");
+    }
+
+    return point_worldtext;
+}
