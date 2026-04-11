@@ -56,6 +56,53 @@ methodmap Entity
         }
     }
 
+    /** Gets the entity's owner
+     * 
+     * @return Owner entity index, or -1 if no owner.
+     */
+    property int owner
+    {
+        public get()
+        {
+            static const char sendProps[][32] =
+            {
+                "m_hOwnerEntity",
+                "m_hBuilder",
+                "m_hLauncher"
+            };
+        
+            static const char dataProps[][32] =
+            {
+                "m_hOwner",
+                "m_hThrower"
+            };
+        
+	        int owner = -1;
+        
+            for (int i = 0; i < sizeof(sendProps); i++)
+            {
+                if (HasEntProp(this.index, Prop_Send, sendProps[i]))
+                {
+                    owner = GetEntPropEnt(this.index, Prop_Send, sendProps[i]);
+                    if (owner != -1 && owner != this.index)
+                        return Entity(owner).owner;
+                }
+            }
+
+            for (int i = 0; i < sizeof(dataProps); i++)
+            {
+                if (HasEntProp(this.index, Prop_Data, dataProps[i]))
+                {
+                    owner = GetEntPropEnt(this.index, Prop_Data, dataProps[i]);
+                    if (owner != -1 && owner != this.index)
+                        return Entity(owner).owner;
+                }
+            }
+
+            return this.index;
+        }
+    }
+
     /**
      * Gets or sets the team number for this entity.
      *

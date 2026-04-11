@@ -106,6 +106,25 @@ methodmap TFPlayer < Entity
     }
 
     /**
+     * Checks whether the player is a TFBot.
+     * 
+     * @return True if player is a TFBot, false otherwise.
+     */
+    property bool tf_bot
+    {
+        public get()
+        {
+            if (!IsFakeClient(this.index))
+            {
+                return false;
+            }
+            char classname[64];
+            GetEntityClassname(this.index, classname, sizeof(classname));
+            return StrEqual(classname, "tf_bot");
+        }
+    }
+
+    /**
      * Gets or sets the player's current health.
      *
      * @return Health value.
@@ -135,14 +154,14 @@ methodmap TFPlayer < Entity
         }
         public set(int value)
         {
-            SetVariantInt(value);
-            AcceptEntityInput(this.index, "SetMaxHealth");
+            SetEntProp(this.index, Prop_Data, "m_iMaxHealth", value);
         }
     }
 
     /**
      * Gets or sets the player's armor.
      * 
+     * @note   TF2 classes have a maximum of 0 armor by default‼
      * @return Armor value.
      */
     property int armor
@@ -579,13 +598,44 @@ methodmap TFPlayer < Entity
 
                 if (kv.JumpToKey("items") && kv.JumpToKey(itemKey))
                 {
+                    char prefab[64];
                     if (kv.GetDataType("prefab") != KvData_None)
                     {
-                        kv.GetString("name", item_class, sizeof(item_class));
+                        kv.GetString("prefab", prefab, sizeof(prefab));
+                    }
+
+                    if (prefab[0] != '\0')
+                    {
+                        kv.Rewind();
+                        if (kv.JumpToKey("prefabs") && kv.JumpToKey(prefab))
+                        {
+                            kv.GetString("item_class", item_class, sizeof(item_class));
+                        }
+                        else
+                        {
+                            kv.Rewind();
+                            kv.JumpToKey("items");
+                            kv.JumpToKey(itemKey);
+                            if (kv.GetDataType("item_class") != KvData_None)
+                            {
+                                kv.GetString("item_class", item_class, sizeof(item_class));
+                            }
+                            else
+                            {
+                                kv.GetString("name", item_class, sizeof(item_class));
+                            }
+                        }
                     }
                     else
                     {
-                        kv.GetString("item_class", item_class, sizeof(item_class));
+                        if (kv.GetDataType("item_class") != KvData_None)
+                        {
+                            kv.GetString("item_class", item_class, sizeof(item_class));
+                        }
+                        else
+                        {
+                            kv.GetString("name", item_class, sizeof(item_class));
+                        }
                     }
 
                     if (kv.GetDataType("bucket") != KvData_None)
@@ -664,60 +714,89 @@ methodmap TFPlayer < Entity
             {
                 this.RemoveWeapon(TFWeaponSlot_Primary);
             }
+        }
+        
+        if (StrEqual(item_class, "tf_weapon_shotgun"))
+        {
+            char className[16];
+            this.GetClassName(className, sizeof(className));
+            if (StrEqual(className, "soldier"))
+            {
+                strcopy(item_class, sizeof(item_class), "tf_weapon_shotgun_soldier");
+            }
+            else if (StrEqual(className, "heavy"))
+            {
+                strcopy(item_class, sizeof(item_class), "tf_weapon_shotgun_hwg");
+            }
+            else if (StrEqual(className, "pyro"))
+            {
+                strcopy(item_class, sizeof(item_class), "tf_weapon_shotgun_pyro");
+            }
+            else if (StrEqual(className, "engineer"))
+            {
+                strcopy(item_class, sizeof(item_class), "tf_weapon_shotgun_primary");
+            }
             else
             {
-                this.RemoveWeapon(slot);
+                int random = GetRandomInt(0, 3);
+                switch (random)
+                {
+                    case 0: strcopy(item_class, sizeof(item_class), "tf_weapon_shotgun_primary");
+                    case 1: strcopy(item_class, sizeof(item_class), "tf_weapon_shotgun_soldier");
+                    case 2: strcopy(item_class, sizeof(item_class), "tf_weapon_shotgun_hwg");
+                    case 3: strcopy(item_class, sizeof(item_class), "tf_weapon_shotgun_pyro");
+                }
             }
         }
 
         int weapon = CreateEntityByName(item_class);
-        if (weapon == -1 || !IsValidEntity(weapon))
+        if (weapon == -1)
         {
             return false;
         }
-
+        
         char scriptFile[128];
         Format(scriptFile, sizeof(scriptFile), "scripts/%s.txt", item_class);
         KeyValues kv = new KeyValues("WeaponData");
         if (kv.ImportFromFile(scriptFile))
         {
-            int clip_size = kv.GetNum("clip_size", -1);
-            int default_clip = kv.GetNum("default_clip", -1);
-            int max_ammo = kv.GetNum("MaxAmmo", -1);
+            int clipSize = kv.GetNum("clip_size", -1);
+            int defaultClip = kv.GetNum("default_clip", -1);
+            int maxAmmo = kv.GetNum("MaxAmmo", -1);
 
-            char primary_ammo[32], secondary_ammo[32];
-            kv.GetString("primary_ammo", primary_ammo, sizeof(primary_ammo), "None");
-            kv.GetString("secondary_ammo", secondary_ammo, sizeof(secondary_ammo), "None");
+            char primaryAmmo[32], secondaryAmmo[32];
+            kv.GetString("primary_ammo", primaryAmmo, sizeof(primaryAmmo), "None");
+            kv.GetString("secondary_ammo", secondaryAmmo, sizeof(secondaryAmmo), "None");
 
-            if (clip_size != -1)
+            if (clipSize != -1)
             {
-                SetEntProp(weapon, Prop_Send, "m_iClip1", clip_size);
+                SetEntProp(weapon, Prop_Send, "m_iClip1", clipSize);
             }
-            else if (default_clip != -1)
+            else if (defaultClip != -1)
             {
-                SetEntProp(weapon, Prop_Send, "m_iClip1", default_clip);
+                SetEntProp(weapon, Prop_Send, "m_iClip1", defaultClip);
             }
 
-            if (max_ammo != -1)
+            if (maxAmmo != -1)
             {
-                if (primary_ammo[0] != '\0' && !StrEqual(primary_ammo, "None"))
+                if (primaryAmmo[0] != '\0' && !StrEqual(primaryAmmo, "None"))
                 {
                     for (int i = 0; i < TF_AMMO_COUNT; i++)
                     {
-                        if (StrEqual(primary_ammo, ammo_names[i]))
+                        if (StrEqual(primaryAmmo, ammo_names[i]))
                         {
-                            SetEntProp(this.index, Prop_Data, "m_iAmmo", max_ammo, 4, ammo_types[i]);
+                            SetEntProp(this.index, Prop_Data, "m_iAmmo", maxAmmo, 4, ammo_types[i]);
                             break;
                         }
                     }
                 }
-                if (secondary_ammo[0] != '\0' && !StrEqual(secondary_ammo, "None"))
+                if (secondaryAmmo[0] != '\0' && !StrEqual(secondaryAmmo, "None"))
                 {
                     for (int i = 0; i < TF_AMMO_COUNT; i++)
                     {
-                        if (StrEqual(secondary_ammo, ammo_names[i]))
+                        if (StrEqual(secondaryAmmo, ammo_names[i]))
                         {
-                            SetEntProp(this.index, Prop_Data, "m_iAmmo", max_ammo, 4, ammo_types[i]);
+                            SetEntProp(this.index, Prop_Data, "m_iAmmo", maxAmmo, 4, ammo_types[i]);
                             break;
                         }
                     }
@@ -792,5 +871,41 @@ methodmap TFPlayer < Entity
     public int GetWeapon(int slot)
     {
         return GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", slot);
+    }
+
+    /**
+     * Searches the weapon entity in the player's m_hMyWeapons array.
+     *
+     * @param entity    Weapon entity index to search for.
+     * @return          Weapon slot index, or -1 if not found.
+     */
+    public int FindWeapon(int entity)
+    {
+        for (int i = TFWeaponSlot_Primary; i < 48; i++)
+        {
+            int weapon = GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", i);
+            if (weapon == entity)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+}
+
+methodmap TFWeapon < Entity
+{
+    /**
+     * Gets the weapon's item definition index.
+     *
+     * @return Item definition index.
+     */
+    property int defindex
+    {
+        public get()
+        {
+            return GetEntProp(this.index, Prop_Send, "m_iItemDefinitionIndex");
+        }
     }
 }
