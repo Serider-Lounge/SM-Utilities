@@ -550,8 +550,8 @@ methodmap TFPlayer < Entity
     /**
      * Gives a weapon to the player by item index or classname.
      * 
-     * @param index         Item index from items_game.txt (ignored if classname is provided).
-     * @param classname     Optional item classname (e.g. "tf_weapon_rocketlauncher"). If provided, takes precedence over index.
+     * @param index         Item definition index.
+     * @param classname     Item classname. If empty, item index will be used to look up classname in items_game.txt.
      * @return              True if weapon was successfully given, false otherwise.
      */
     public bool GiveWeapon(int index, const char[] classname = "")
@@ -908,4 +908,38 @@ methodmap TFWeapon < Entity
             return GetEntProp(this.index, Prop_Send, "m_iItemDefinitionIndex");
         }
     }
+}
+
+/**
+ * Attaches a tf_glow entity to a parent entity with an arbitrary color.
+ * 
+ * @param entity    Parent entity index.
+ * @param color     Glow color.
+ * @return          tf_glow entity index.
+ */
+stock int TF2_Glow(int entity, color[4] = {255, 255, 255, 255})
+{
+	char targetname_old[64];
+	GetEntPropString(entity, Prop_Data, "m_iName", targetname_old, sizeof(targetname_old));
+
+	char targetname[126], classname[64];
+	GetEntityClassname(entity, classname, sizeof(classname));
+	Format(targetname, sizeof(targetname), "%s%i", classname, entity);
+	DispatchKeyValue(entity, "targetname", targetname);
+	
+	int tf_glow = CreateEntityByName("tf_glow");
+	DispatchKeyValue(tf_glow, "target", targetname);
+	DispatchSpawn(tf_glow);
+
+	SetVariantString("!activator");
+	AcceptEntityInput(tf_glow, "SetParent", entity, tf_glow);
+
+	SetVariantColor(color);
+	AcceptEntityInput(tf_glow, "SetGlowColor");
+
+	AcceptEntityInput(tf_glow, "Enable");
+	
+	SetEntPropString(entity, Prop_Data, "m_iName", targetname_old);
+
+	return tf_glow;
 }
