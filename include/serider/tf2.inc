@@ -708,7 +708,7 @@ methodmap TFPlayer < Entity
         }
 
         // Cleanup the previous weapon if it shares a slot with the new weapon
-        if (slot >= TFWeaponSlot_Primary && slot <= TFWeaponSlot_Item2)
+        if (slot >= TFWeaponSlot_Primary && slot < 48)
         {
             if (bucket == -1 && (StrContains(item_class, "revolver") != -1 || StrContains(item_class, "tranq") != -1))
             {
@@ -825,7 +825,7 @@ methodmap TFPlayer < Entity
      */
     public void RemoveWeapon(int slot)
     {
-        for (int i = TFWeaponSlot_Primary; i <= TFWeaponSlot_Item2; i++)
+        for (int i = TFWeaponSlot_Primary; i < 48; i++)
         {
             int weapon = GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", i);
             if (weapon == -1 || !IsValidEntity(weapon))
@@ -856,7 +856,7 @@ methodmap TFPlayer < Entity
      */
     public void RemoveAllWeapons()
     {
-        for (int i = TFWeaponSlot_Primary; i <= TFWeaponSlot_Item2; i++)
+        for (int i = TFWeaponSlot_Primary; i < 48; i++)
         {
             this.RemoveWeapon(i);
         }
