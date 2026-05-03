@@ -22,9 +22,6 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
-    /* Events */
-    HookEvent("teamplay_round_active", Event_TeamplayRoundActive);
-
     /* ConVars */
     g_ConVars[quit_retry]                = CreateConVar("sm_quit_retry", "1", "Whether to send retry command to clients on quit.", _, true, 0.0, true, 1.0);
     g_ConVars[restart_retry]             = CreateConVar("sm_restart_retry", "1", "Whether to send retry command to clients on restart.", _, true, 0.0, true, 1.0);
