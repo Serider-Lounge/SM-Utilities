@@ -42,6 +42,7 @@ methodmap Entity
     {
         return view_as<Entity>(entity);
     }
+
     
     /**
      * Gets the entity index.

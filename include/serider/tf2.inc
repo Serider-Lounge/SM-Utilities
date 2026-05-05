@@ -1,3 +1,6 @@
+/**
+ * Team Fortress 2 | https://store.steampowered.com/app/440
+ */
 #include <tf2_stocks>
 
 // https://developer.valvesoftware.com/wiki/Team_Fortress_2/Scripting/Script_Functions/Constants#FHideHUD
@@ -830,7 +833,7 @@ methodmap TFPlayer < Entity
             int weapon = GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", i);
             if (weapon == -1 || !IsValidEntity(weapon))
                 continue;
-            
+
             if (i != slot)
                 continue;
 

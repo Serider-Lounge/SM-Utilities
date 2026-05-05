@@ -1,3 +1,6 @@
+/**
+ * Team Fortress 2 Classified | https://store.steampowered.com/app/3545060
+ */
 const TFTeam TFTeam_Green = view_as<TFTeam>(4);
 const TFTeam TFTeam_Yellow = view_as<TFTeam>(5);
 
