@@ -32,7 +32,7 @@ enum
 ConVar g_ConVars[MAX_CONVARS];
 
 bool g_ThirdPerson[MAXPLAYERS + 1];
-bool g_bTF2Attributes;
+bool g_bTF2Attributes = false;
 char g_CreditsSelection[MAXPLAYERS + 1][256];
 
 char g_GameDir[64];
@@ -42,7 +42,7 @@ public Plugin myinfo =
     name = "SM Utilities | Essentials",
     author = "Heapons",
     description = "Tools and utilities for Source games",
-    version = "26w16a",
+    version = "26w19a",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 
@@ -111,11 +111,6 @@ public void OnPluginStart()
     RegConsoleCmd("sm_credits", Command_Credits);
 }
 
-public void OnAllPluginsLoaded()
-{
-    g_bTF2Attributes = TF2Attrib_IsReady();
-}
-
 // ConVars
 void OnConVarChange(ConVar convar, const char[] oldValue, const char[] newValue)
 {
@@ -139,6 +134,22 @@ void OnConVarChange(ConVar convar, const char[] oldValue, const char[] newValue)
 }
 
 // Forwards
+public void OnLibraryAdded(const char[] name)
+{
+    if (StrEqual(name, "tf2attributes"))
+    {
+        g_bTF2Attributes = true;
+    }
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+    if (StrEqual(name, "tf2attributes"))
+    {
+        g_bTF2Attributes = false;
+    }
+}
+
 public void OnMapInit()
 {
     int lumpLength = EntityLump.Length();
