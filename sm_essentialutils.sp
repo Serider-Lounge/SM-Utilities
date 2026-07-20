@@ -16,8 +16,7 @@
 #include <tf2attributes>
 #define REQUIRE_PLUGIN
 
-#define PLUGIN_PREFIX           "[{#F69E1D}S{#5596CF}M\x01]"
-#define PLUGIN_PREFIX_CONSOLE   "[SM Utilities]"
+#define PLUGIN_PREFIX "[\x03SM Utilities\x01]"
 
 enum
 {
