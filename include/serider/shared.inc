@@ -21,7 +21,7 @@ enum
     COLLISION_GROUP_NPC_ACTOR,
     COLLISION_GROUP_NPC_SCRIPTED,
 
-    // TF2
+    // Team Fortress 2
     TFCOLLISION_GROUP_GRENADES,
     TFCOLLISION_GROUP_OBJECT,
     TFCOLLISION_GROUP_OBJECT_SOLIDTOPLAYERMOVEMENT,
@@ -250,6 +250,59 @@ methodmap Entity
     public bool GetModelName(char[] buffer, int maxlen)
     {
         return GetEntPropString(this.index, Prop_Data, "m_ModelName", buffer, maxlen);
+    }
+}
+
+methodmap NavMesh
+{
+    /**
+     * Get the amount of navigation areas.
+     * 
+     * @return  Nav area count.
+     */
+    public static int GetNavAreaCount()
+    {
+        int ent = CreateEntityByName("info_target");
+
+        SetVariantString("NetProps.SetPropInt(self, \"m_spawnflags\", NavMesh.GetNavAreaCount())");
+        AcceptEntityInput(ent, "RunScriptCode");
+
+        int areaCount = GetEntProp(ent, Prop_Data, "m_spawnflags");
+            
+        RemoveEntity(ent);
+        return areaCount;
+    }
+
+    /**
+     * Check if navigation meshes are present.
+     * 
+     * @return True if GetNavAreaCount() > 0, false otherwise.
+     */
+    public static bool IsLoaded()
+    {
+        return NavMesh.GetNavAreaCount() > 0;
+    }
+
+    /**
+     * Check if <mapname>.nav exists.
+     * 
+     * @return True if <mapname>.nav is present
+     */
+    public static bool FileExists()
+    {
+        char mapName[96], mapDisplayName[64];
+        GetCurrentMap(mapName, sizeof(mapName));
+        GetMapDisplayName(mapName, mapDisplayName, sizeof(mapDisplayName));
+
+        char navPath[PLATFORM_MAX_PATH];
+        Format(navPath, sizeof(navPath), "maps/%s.nav", mapName);
+
+        File file = OpenFile(navPath, "r", true);
+
+        bool fileExists = (file != null);
+        delete file;
+
+        return fileExists;
     }
 }
 
