@@ -1,6 +1,3 @@
-/**
- * Team Fortress 2 | https://store.steampowered.com/app/440
- */
 #include <tf2_stocks>
 
 // https://developer.valvesoftware.com/wiki/Team_Fortress_2/Scripting/Script_Functions/Constants#FHideHUD
@@ -69,6 +66,7 @@ static const int ammo_types[TF_AMMO_COUNT] =
 };
 
 const TFClassType TFClass_Civilian = view_as<TFClassType>(10);
+const TFTeam TFTeam_Halloween = view_as<TFTeam>(5);
 
 methodmap TFPlayer < Entity
 {
@@ -557,7 +555,7 @@ methodmap TFPlayer < Entity
      * @param classname     Item classname. If empty, item index will be used to look up classname in items_game.txt.
      * @return              True if weapon was successfully given, false otherwise.
      */
-    public bool GiveWeapon(int index, const char[] classname = "")
+    public bool GiveWeapon(int index, const char[] classname = NULL_STRING)
     {
         if (this.index <= 0 || this.index > MaxClients || !IsClientInGame(this.index))
             return false;
@@ -566,6 +564,22 @@ methodmap TFPlayer < Entity
         int slot = -1;
         int bucket = -1;
         char item_slot[32];
+        bool classCompatible = false;
+
+        static const char class_names[10][16] =
+        {
+            "scout",
+            "sniper",
+            "soldier",
+            "demo",
+            "medic",
+            "heavy",
+            "pyro",
+            "spy",
+            "engineer",
+            "civilian", // Team Fortress 2 Classified
+            "john" // Fortress Connected
+        };
 
         char mapName[96], mapSchema[PLATFORM_MAX_PATH];
         GetCurrentMap(mapName, sizeof(mapName));
@@ -650,6 +664,14 @@ methodmap TFPlayer < Entity
                         kv.GetString("item_slot", item_slot, sizeof(item_slot));
                     }
 
+                    char playerClassName[16];
+                    this.GetClassName(playerClassName, sizeof(playerClassName));
+
+                    if (kv.JumpToKey("used_by_classes"))
+                    {
+                        classCompatible = kv.GetNum(playerClassName) > 0;
+                    }
+
                     kv.Rewind();
                     found = true;
                 }
@@ -692,64 +714,28 @@ methodmap TFPlayer < Entity
             {
                 slot = TFWeaponSlot_PDA;
             }
-            else if (StrEqual(item_slot, "item1"))
+            else if (StrEqual(item_slot, "utility"))
             {
                 slot = TFWeaponSlot_Item1;
             }
-            else if (StrEqual(item_slot, "item2"))
+            else if (StrEqual(item_slot, "action"))
             {
                 slot = TFWeaponSlot_Item2;
             }
         }
 
-        for (int i = 0; i < sizeof(item_class) && item_class[i] != '\0'; i++)
-        {
-            if (item_class[i] == '_')
-                continue;
-
-            item_class[i] = CharToLower(item_class[i]);
-        }
-
-        // Cleanup the previous weapon if it shares a slot with the new weapon
+        // Prevent edict overflows
         if (slot >= TFWeaponSlot_Primary && slot < 48)
         {
+            int removeSlot = slot;
             if (bucket == -1 && (StrContains(item_class, "revolver") != -1 || StrContains(item_class, "tranq") != -1))
             {
-                this.RemoveWeapon(TFWeaponSlot_Primary);
-            }
-        }
-        
-        if (StrEqual(item_class, "tf_weapon_shotgun"))
-        {
-            char className[16];
-            this.GetClassName(className, sizeof(className));
-            if (StrEqual(className, "soldier"))
-            {
-                strcopy(item_class, sizeof(item_class), "tf_weapon_shotgun_soldier");
-            }
-            else if (StrEqual(className, "heavy"))
-            {
-                strcopy(item_class, sizeof(item_class), "tf_weapon_shotgun_hwg");
-            }
-            else if (StrEqual(className, "pyro"))
-            {
-                strcopy(item_class, sizeof(item_class), "tf_weapon_shotgun_pyro");
-            }
-            else if (StrEqual(className, "engineer"))
-            {
-                strcopy(item_class, sizeof(item_class), "tf_weapon_shotgun_primary");
-            }
-            else
-            {
-                int random = GetRandomInt(0, 3);
-                switch (random)
+                if (!classCompatible)
                 {
-                    case 0: strcopy(item_class, sizeof(item_class), "tf_weapon_shotgun_primary");
-                    case 1: strcopy(item_class, sizeof(item_class), "tf_weapon_shotgun_soldier");
-                    case 2: strcopy(item_class, sizeof(item_class), "tf_weapon_shotgun_hwg");
-                    case 3: strcopy(item_class, sizeof(item_class), "tf_weapon_shotgun_pyro");
+                    removeSlot = TFWeaponSlot_Primary;
                 }
             }
+            this.RemoveWeaponBySlot(removeSlot);
         }
 
         int weapon = CreateEntityByName(item_class);
@@ -825,33 +811,61 @@ methodmap TFPlayer < Entity
      * Removes a weapon from this player by slot.
      *
      * @param slot      Weapon slot to remove.
+     * @return          True if a weapon was removed, false otherwise.
      */
-    public void RemoveWeapon(int slot)
+    public bool RemoveWeaponBySlot(int slot)
     {
+        int weapon = GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", slot);
+        if (weapon == -1 || !IsValidEntity(weapon))
+        {
+            return false;
+        }
+
+        int wearable = GetEntPropEnt(weapon, Prop_Send, "m_hExtraWearable");
+        if (wearable != -1 && IsValidEntity(wearable))
+        {
+            RemoveEntity(wearable);
+        }
+
+        wearable = GetEntPropEnt(weapon, Prop_Send, "m_hExtraWearableViewModel");
+        if (wearable != -1 && IsValidEntity(wearable))
+        {
+            RemoveEntity(wearable);
+        }
+
+        RemovePlayerItem(this.index, weapon);
+        RemoveEntity(weapon);
+
+        return true;
+    }
+
+    /**
+     * Removes a weapon from this player by item definition index.
+     * 
+     * @param defindex   Item definition index of the weapon to remove.
+     * @return           True if a weapon was removed, false otherwise.
+     */
+    public bool RemoveWeaponByDefIndex(int defindex)
+    {
+        int weapon;
         for (int i = TFWeaponSlot_Primary; i < 48; i++)
         {
-            int weapon = GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", i);
+            weapon = GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", i);
             if (weapon == -1 || !IsValidEntity(weapon))
-                continue;
-
-            if (i != slot)
-                continue;
-
-            int wearable = GetEntPropEnt(weapon, Prop_Send, "m_hExtraWearable");
-            if (wearable != -1 && IsValidEntity(wearable))
             {
-                RemoveEntity(wearable);
+                continue;
             }
 
-            wearable = GetEntPropEnt(weapon, Prop_Send, "m_hExtraWearableViewModel");
-            if (wearable != -1 && IsValidEntity(wearable))
+            if (GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex") != defindex)
             {
-                RemoveEntity(wearable);
+                continue;
             }
 
-            RemovePlayerItem(this.index, weapon);
-            RemoveEntity(weapon);
+            this.RemoveWeaponBySlot(i);
+            return true;
         }
+
+        return false;
     }
 
     /**
@@ -861,7 +875,7 @@ methodmap TFPlayer < Entity
     {
         for (int i = TFWeaponSlot_Primary; i < 48; i++)
         {
-            this.RemoveWeapon(i);
+            this.RemoveWeaponBySlot(i);
         }
     }
 
@@ -871,7 +885,7 @@ methodmap TFPlayer < Entity
      * @param slot      Weapon slot.
      * @return          Weapon entity index.
      */
-    public int GetWeapon(int slot)
+    public int GetWeaponBySlot(int slot)
     {
         return GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", slot);
     }
@@ -879,20 +893,19 @@ methodmap TFPlayer < Entity
     /**
      * Searches the weapon entity in the player's m_hMyWeapons array.
      *
-     * @param entity    Weapon entity index to search for.
+     * @param defindex  Item definition index to search for.
      * @return          Weapon slot index, or -1 if not found.
      */
-    public int FindWeapon(int entity)
+    public int GetWeaponByDefIndex(int defindex)
     {
         for (int i = TFWeaponSlot_Primary; i < 48; i++)
         {
             int weapon = GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", i);
-            if (weapon == entity)
+            if (weapon != -1 && GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex") == defindex)
             {
                 return i;
             }
         }
-
         return -1;
     }
 }
@@ -945,4 +958,85 @@ stock int TF2_Glow(int entity, color[4] = {255, 255, 255, 255})
 	SetEntPropString(entity, Prop_Data, "m_iName", targetname_old);
 
 	return tf_glow;
+}
+
+/**
+ * Gets the name of the current MvM popfile.
+ *
+ * @param name      The buffer to store the popfile name.
+ * @param maxlen    The maximum length of the buffer.
+ * @param cleanup   If true, trims "scripts/population/" and ".pop" from the popfile name.
+ * @return          The length of the popfile name, returns 0 if not found.
+ */
+stock int TF2_GetPopFileName(char[] buffer, int maxlen, bool cleanup = false)
+{
+    int entity = FindEntityByClassname(-1, "tf_objective_resource");
+    if (entity == -1)
+        return 0;
+
+    char name[128];
+    GetEntPropString(entity, Prop_Send, "m_iszMvMPopfileName", name, sizeof(name));
+
+    if (cleanup)
+    {
+	    ReplaceString(name, sizeof(name), "scripts/population/", "");
+	    ReplaceString(name, sizeof(name), ".pop", "");
+    }
+
+    return strcopy(buffer, maxlen, name[19]);
+}
+
+/**
+ * Spawns a TFBot client.
+ * 
+ * @param name          Player name.
+ * @param team          Team name.
+ * @param class         Class identifier (used by 'joinclass' command or as per defined in 'scripts/playerclasses/<class>.ctx').
+ * @param difficulty    Difficulty skill level (set to '-1' for random).
+ * @return              Client index of the spawned bot on success, -1 on failure.
+ */
+stock int TF2_SpawnBot(const char[] name = "TFBot", const char[] team = NULL_STRING, const char[] class = NULL_STRING, int difficulty = 1)
+{
+    bool[] bots = new bool[MaxClients + 1];
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i) && IsFakeClient(i))
+        {
+            bots[i] = true;
+        }
+    }
+
+    char botDifficulty[16];
+    switch (difficulty)
+    {
+        case -1:
+        {
+            int random = GetRandomInt(0, 3);
+            switch (random)
+            {
+                case 0: strcopy(botDifficulty, sizeof(botDifficulty), "easy");
+                case 1: strcopy(botDifficulty, sizeof(botDifficulty), "normal");
+                case 2: strcopy(botDifficulty, sizeof(botDifficulty), "hard");
+                case 3: strcopy(botDifficulty, sizeof(botDifficulty), "expert");
+            }
+        }
+        case 0: strcopy(botDifficulty, sizeof(botDifficulty), "easy");
+        case 1: strcopy(botDifficulty, sizeof(botDifficulty), "normal");
+        case 2: strcopy(botDifficulty, sizeof(botDifficulty), "hard");
+        case 3: strcopy(botDifficulty, sizeof(botDifficulty), "expert");
+    }
+
+    ServerCommand("tf_bot_add noquota %s %s %s %s", name, botDifficulty, team, class);
+
+    int tf_bot = -1;
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!bots[i] && IsClientInGame(i) && IsFakeClient(i))
+        {
+            tf_bot = i;
+            break;
+        }
+    }
+
+    return tf_bot;
 }
