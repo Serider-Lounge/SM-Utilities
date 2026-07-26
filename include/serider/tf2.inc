@@ -566,7 +566,7 @@ methodmap TFPlayer < Entity
         char item_slot[32];
         bool classCompatible = false;
 
-        static const char class_names[10][16] =
+        static const char class_names[11][16] =
         {
             "scout",
             "sniper",
