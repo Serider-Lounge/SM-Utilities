@@ -416,3 +416,36 @@ stock void PrecacheFile(const char[] path)
         PrecacheGeneric(path);
     }
 }
+
+/**
+ * Checks if a team is active.
+ * 
+ * @param team  Team index.
+ * @return      True if the team is active, false otherwise.
+ */
+stock bool IsTeamActive(int team)
+{
+    if (FindSendPropInfo("CTFGameRulesProxy", "m_iTeamsActive") > 0)
+    {
+        return view_as<bool>(GameRules_GetProp("m_iTeamsActive") & (1 << (team - 2)));
+    }
+    return team > 1 && team < GetTeamCount();
+}
+
+/**
+ * Returns the total number of active teams in a game.
+ * @note This native should not be called before OnMapStart.
+ *
+ * @return  Total number of active teams.
+ */
+stock int GetActiveTeamCount()
+{
+    int teamCount = GetTeamCount();
+    int count = 0;
+    for (int i = 2; i < teamCount; i++)
+    {
+        if (IsTeamActive(i))
+            count++;
+    }
+    return FindSendPropInfo("CTFGameRulesProxy", "m_iTeamsActive") > 0 ? count : teamCount - 2;
+}
