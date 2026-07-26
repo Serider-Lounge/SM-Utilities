@@ -312,11 +312,13 @@ methodmap NavMesh
  * @param entity    Entity index to display text above.
  * @param color     Text color as an array of 4 integers (RGBA).
  * @param message   Text message to display.
+ * @param font      Font to use for the text.
  * @param offset    Offset from the entity's origin to display the text at.
  * @param size      Text size.
+ * @param parent    Parent attachment for the text.
  * @return          Entity index of the created point_worldtext, or -1 on failure.
  */
-stock int DisplayText(int entity, color[4] = {255, 255, 255, 255}, const char[] message = "", float offset[3] = {0.0, 0.0, 0.0}, int size = 8)
+stock int DisplayText(int entity, color[4] = {255, 255, 255, 255}, const char[] message = "", int font = 0, float offset[3] = {0.0, 0.0, 0.0}, int size = 8, const char[] parent = "head")
 {
     if (entity == -1 || !IsValidEntity(entity))
     {
@@ -343,7 +345,9 @@ stock int DisplayText(int entity, color[4] = {255, 255, 255, 255}, const char[] 
     }
 
     DispatchKeyValue(point_worldtext, "message", text);
-    DispatchKeyValue(point_worldtext, "font", "0");
+    char fontString[16];
+    IntToString(font, fontString, sizeof(fontString));
+    DispatchKeyValue(point_worldtext, "font", fontString);
     char textsize[16];
     IntToString(size, textsize, sizeof(textsize));
     DispatchKeyValue(point_worldtext, "textsize", textsize);
@@ -367,7 +371,7 @@ stock int DisplayText(int entity, color[4] = {255, 255, 255, 255}, const char[] 
 
     if (entity > 0 && entity <= MaxClients)
     {
-        SetVariantString("head");
+        SetVariantString(parent);
         AcceptEntityInput(point_worldtext, "SetParentAttachmentMaintainOffset");
     }
 
