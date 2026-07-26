@@ -1,8 +1,9 @@
 /**
  * Team Fortress 2 Classified | https://store.steampowered.com/app/3545060
  */
-const TFTeam TFTeam_Green = view_as<TFTeam>(4);
-const TFTeam TFTeam_Yellow = view_as<TFTeam>(5);
+const TFTeam TFTeam_Green       = view_as<TFTeam>(4);
+const TFTeam TFTeam_Yellow      = view_as<TFTeam>(5);
+const TFTeam TF2CTeam_Halloween = view_as<TFTeam>(7);
 
 #define TF2C_COND_TRANQUILIZED          136
 #define TF2C_COND_CIV_SPEED             137
