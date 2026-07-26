@@ -1,0 +1,18 @@
+"Phrases"
+{
+    "server_explosion_hud"
+    {
+        "en"    "SERVER EXPLOSION IMMINENT"
+        "fr"    "EXPLOSION DU SERVEUR IMMINENTE"
+    }
+    "player_kick_hud"
+    {
+        "en"    "YOU ARE ABOUT TO GET KICKED"
+        "fr"    "VOUS ALLEZ ÊTRE EXPULSÉ·E"
+    }
+    "player_ban_hud"
+    {
+        "en"    "YOU ARE ABOUT TO GET BANNED"
+        "fr"    "VOUS ALLEZ ÊTRE BANNI·E"
+    }
+}
