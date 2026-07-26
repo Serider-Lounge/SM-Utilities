@@ -377,3 +377,42 @@ stock int DisplayText(int entity, color[4] = {255, 255, 255, 255}, const char[] 
 
     return point_worldtext;
 }
+
+/**
+ * Calls the right precache function based on the file extension.
+ * 
+ * @param path  Path to the file to precache.
+ */
+stock void PrecacheFile(const char[] path)
+{
+    int len = strlen(path);
+    bool isModelFile = StrEqual(path[len - 4], ".mdl") ||
+                       StrEqual(path[len - 4], ".vcd") ||
+                       StrEqual(path[len - 4], ".vvd") ||
+                       StrEqual(path[len - 4], ".phy") ||
+                       StrEqual(path[len - 4], ".vtx");
+
+    bool isDecalFile = StrEqual(path[len - 4], ".vmt") ||
+                       StrEqual(path[len - 4], ".vtf");
+
+    bool isSoundFile = StrEqual(path[len - 4], ".wav") ||
+                       StrEqual(path[len - 4], ".mp3") ||
+                       StrEqual(path[len - 4], ".ogg");
+
+    if (isModelFile)
+    {
+        PrecacheModel(path);
+    }
+    else if (isDecalFile)
+    {
+        PrecacheDecal(path);
+    }
+    else if (isSoundFile)
+    {
+        PrecacheSound(path);
+    }
+    else
+    {
+        PrecacheGeneric(path);
+    }
+}
