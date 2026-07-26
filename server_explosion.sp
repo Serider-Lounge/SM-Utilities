@@ -1,69 +1,160 @@
 #include <sourcemod>
 #include <sdktools>
+#include <keyvalues>
 
 // GLOBAL VARIABLES
 int g_iFlashCounter = 0;
 Handle g_hFlashTimer = null;
-
-enum
-{
-    sound_alarm,
-    sound_explosion,
-    max_flashes,
-    flash_interval,
-    explosion_duration,
-    execute_command,
-    text_display,
-    text_color,
-    text_color2,
-    text_alpha,
-    text_alpha2,
-
-    MAX_CONVARS
-};
-
-ConVar g_ConVars[MAX_CONVARS];
+KeyValues g_hPresets = null;
+char g_sSoundAlarm[PLATFORM_MAX_PATH];
+char g_sSoundExplosion[PLATFORM_MAX_PATH];
+int g_iMaxFlashes;
+float g_fFlashInterval;
+float g_fExplosionDuration;
+char g_sExecuteCommand[64];
+char g_sTextDisplay[256];
+int g_iBgColor[4];
+int g_iBgColorFade[4];
 
 public Plugin myinfo =
 {
-    name = "Imminent Server Explosion (Shutdown)",
+    name = "Imminent Server Explosion",
     author = "Breadd~, Heapons",
-    description = "Flashes screen, plays alarm, triggers explosion, then quits server.",
-    version = "26w16a",
-    url = ""
+    description = "Flashes screen, plays alarm, triggers explosion, then executes a command.",
+    version = "26w31a",
+    url = "https://github.com/Serider-Lounge/SM-Utilities"
 };
 
 public void OnPluginStart()
 {
+    LoadTranslations("server_explosion.phrases");
+
     // Commands
-    RegAdminCmd("sm_trigger_serverexplosion", Command_Explode, ADMFLAG_ROOT, "Triggers a server explosion sequence and shuts down.");
-    
-    // ConVars
-    g_ConVars[sound_alarm]        = CreateConVar("sm_serverexplosion_sound_alarm", "ambient/alarms/klaxon1.wav", "Sound to play for the alarm.");
-    g_ConVars[sound_explosion]    = CreateConVar("sm_serverexplosion_sound_explosion", "ambient/explosions/explode_1.wav", "Sound to play for the explosion.");
-    g_ConVars[max_flashes]        = CreateConVar("sm_serverexplosion_max_flashes", "3", "Maximum number of flash effects.");
-    g_ConVars[flash_interval]     = CreateConVar("sm_serverexplosion_flash_interval", "1.0", "Interval between flash effects.");
-    g_ConVars[explosion_duration] = CreateConVar("sm_serverexplosion_duration", "0.25", "Duration of the explosion effect.");
-    g_ConVars[execute_command]    = CreateConVar("sm_serverexplosion_execute_command", "_restart", "Command to execute when the explosion sequence is complete.");
-    g_ConVars[text_display]       = CreateConVar("sm_serverexplosion_text_display", "SERVER EXPLOSION IMMINENT", "Text to display during the explosion sequence.");
-    g_ConVars[text_color]         = CreateConVar("sm_serverexplosion_text_color", "255 0 0 100", "Background color and alpha of the text warnings.");
-    g_ConVars[text_color2]        = CreateConVar("sm_serverexplosion_text_color2", "255 255 255 255", "Fade background color and alpha of the text warnings.");
+    RegAdminCmd("sm_trigger_serverexplosion", Command_Explode, ADMFLAG_ROOT, "Triggers a server explosion sequence. Usage: sm_trigger_serverexplosion [preset]");
+
+    // Load presets from cfg
+    LoadPresets();
 }
 
 public void OnMapStart()
 {
-    // Precache sounds
-    char soundAlarm[PLATFORM_MAX_PATH], soundExplosion[PLATFORM_MAX_PATH];
-
-    g_ConVars[sound_alarm].GetString(soundAlarm, sizeof(soundAlarm));
-    g_ConVars[sound_explosion].GetString(soundExplosion, sizeof(soundExplosion));
-
-    PrecacheSound(soundAlarm, true);
-    PrecacheSound(soundExplosion, true);
+    LoadPresets();
 }
+
+// --------------------------------------------------------------------------
+// Preset Loading
+// --------------------------------------------------------------------------
+
+void LoadPresets()
+{
+    if (g_hPresets != null)
+        delete g_hPresets;
+
+    g_hPresets = new KeyValues("Presets");
+
+    char path[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, path, sizeof(path), "configs/server_explosion/presets.cfg");
+
+    LogMessage("[ServerExplosion] Attempting to load presets from: %s", path);
+    
+    if (!g_hPresets.ImportFromFile(path))
+    {
+        LogError("[ServerExplosion] Failed to load presets file: %s", path);
+        return;
+    }
+
+    LogMessage("[ServerExplosion] Presets file loaded successfully");
+    
+    g_hPresets.Rewind();
+    if (g_hPresets.GotoFirstSubKey())
+    {
+        do
+        {
+            char keyName[64];
+            g_hPresets.GetSectionName(keyName, sizeof(keyName));
+            LogMessage("[ServerExplosion] Found preset: %s", keyName);
+        }
+        while (g_hPresets.GotoNextKey());
+        g_hPresets.Rewind();
+    }
+    else
+    {
+        LogError("[ServerExplosion] No presets found in file!");
+    }
+
+    if (!LoadPresetValues("default"))
+    {
+        LogError("[ServerExplosion] Failed to load 'default' preset from presets.cfg");
+    }
+}
+
+bool LoadPresetValues(const char[] presetName)
+{
+    g_hPresets.Rewind();
+
+    LogMessage("[ServerExplosion] Looking for preset: %s", presetName);
+    
+    if (!g_hPresets.JumpToKey(presetName))
+    {
+        LogError("[ServerExplosion] Preset '%s' not found in presets.cfg", presetName);
+        return false;
+    }
+
+    LogMessage("[ServerExplosion] Found preset '%s', loading values...", presetName);
+
+    g_hPresets.GetString("sound_alarm",     g_sSoundAlarm,     sizeof(g_sSoundAlarm),     "ambient/alarms/klaxon1.wav");
+    g_hPresets.GetString("sound_explosion", g_sSoundExplosion, sizeof(g_sSoundExplosion), "ambient/explosions/explode_1.wav");
+    g_iMaxFlashes        = g_hPresets.GetNum("max_flashes", 3);
+    g_fFlashInterval     = g_hPresets.GetFloat("flash_interval", 1.0);
+    g_fExplosionDuration = g_hPresets.GetFloat("duration", 0.25);
+    g_hPresets.GetString("execute_command", g_sExecuteCommand, sizeof(g_sExecuteCommand), "_restart");
+    g_hPresets.GetString("text_display",    g_sTextDisplay,    sizeof(g_sTextDisplay),    "SERVER EXPLOSION IMMINENT");
+
+    char colorStr[32];
+
+    g_hPresets.GetString("bg_color", colorStr, sizeof(colorStr), "255 0 0 100");
+    ParseColorString(colorStr, g_iBgColor);
+
+    g_hPresets.GetString("bg_color_fade", colorStr, sizeof(colorStr), "255 255 255 255");
+    ParseColorString(colorStr, g_iBgColorFade);
+
+    g_hPresets.Rewind();
+    return true;
+}
+
+void ParseColorString(const char[] colorStr, int color[4])
+{
+    char parts[4][8];
+    ExplodeString(colorStr, " ", parts, 4, sizeof(parts[]));
+    for (int i = 0; i < 4; i++)
+    {
+        color[i] = StringToInt(parts[i]);
+    }
+}
+
+// --------------------------------------------------------------------------
+// Command
+// --------------------------------------------------------------------------
 
 public Action Command_Explode(int client, int args)
 {
+    char presetName[64];
+
+    if (args >= 1)
+    {
+        GetCmdArg(1, presetName, sizeof(presetName));
+    }
+    else
+    {
+        strcopy(presetName, sizeof(presetName), "default");
+    }
+
+    if (!LoadPresetValues(presetName))
+    {
+        ReplyToCommand(client, "[SM] Preset '%s' not found in presets.cfg!", presetName);
+        return Plugin_Handled;
+    }
+
     if (g_hFlashTimer != null)
     {
         KillTimer(g_hFlashTimer);
@@ -71,29 +162,33 @@ public Action Command_Explode(int client, int args)
     }
 
     g_iFlashCounter = 0;
-    
+
     // Immediate first effect
     PerformWarningEffect();
-    
-    // Start the countdown timer
-    g_hFlashTimer = CreateTimer(g_ConVars[flash_interval].FloatValue, Timer_WarningLoop, _, TIMER_REPEAT);
 
-    ReplyToCommand(client, "[SM] Imminent Server Explosion Activated");
+    // Start the countdown timer
+    g_hFlashTimer = CreateTimer(g_fFlashInterval, Timer_WarningLoop, _, TIMER_REPEAT);
+
+    ReplyToCommand(client, "[SM] Imminent Server Explosion Activated (preset: %s)", presetName);
     return Plugin_Handled;
 }
+
+// --------------------------------------------------------------------------
+// Timers
+// --------------------------------------------------------------------------
 
 public Action Timer_WarningLoop(Handle timer)
 {
     g_iFlashCounter++;
 
     // IF WE REACH THE END OF THE COUNTDOWN
-    if (g_iFlashCounter >= g_ConVars[max_flashes].IntValue)
+    if (g_iFlashCounter >= g_iMaxFlashes)
     {
         g_hFlashTimer = null;
-        
+
         // Trigger the finale
         FinalExplosionSequence();
-        
+
         return Plugin_Stop;
     }
 
@@ -101,46 +196,36 @@ public Action Timer_WarningLoop(Handle timer)
     return Plugin_Continue;
 }
 
+// Execute command
+public Action Timer_ExecuteCommand(Handle timer)
+{
+    LogMessage("Server explosion sequence complete. Executing: %s", g_sExecuteCommand);
+
+    ServerCommand(g_sExecuteCommand);
+    return Plugin_Handled;
+}
+
+// --------------------------------------------------------------------------
+// Effects
+// --------------------------------------------------------------------------
+
 void FinalExplosionSequence()
 {
-    char soundExplosion[PLATFORM_MAX_PATH];
-    g_ConVars[sound_explosion].GetString(soundExplosion, sizeof(soundExplosion));
-
-    // Play FUNNY explosion sound to ALL clients
-    EmitSoundToAll(soundExplosion);
+    // Play explosion sound to ALL clients
+    PrecacheSound(g_sSoundExplosion, true);
+    EmitSoundToAll(g_sSoundExplosion);
 
     // Screen Flashbang
     for (int i = 1; i <= MaxClients; i++)
     {
         if (IsClientInGame(i) && !IsFakeClient(i))
         {
-            // Fadeout
-            char colorStr[32];
-            g_ConVars[text_color2].GetString(colorStr, sizeof(colorStr));
-            char colors[4][8];
-            int color[4];
-            ExplodeString(colorStr, " ", colors, 4, sizeof(colors[]));
-            for (int j = 0; j < 4; j++)
-            {
-                color[j] = StringToInt(colors[j]);
-            }
-            Client_ScreenFade(i, 1000, 0, 0x0001, color[0], color[1], color[2], color[3]);
+            Client_ScreenFade(i, 1000, 0, 0x0001, g_iBgColorFade[0], g_iBgColorFade[1], g_iBgColorFade[2], g_iBgColorFade[3]);
         }
     }
 
-    // Create a timer to actually kill the server after the sound plays
-    CreateTimer(g_ConVars[explosion_duration].FloatValue, Timer_ShutdownServer);
-}
-
-// Server shutdown
-public Action Timer_ShutdownServer(Handle timer)
-{
-    LogMessage("Server explosion sequence complete. Restarting...");
-
-    char command[64];
-    g_ConVars[execute_command].GetString(command, sizeof(command));
-    ServerCommand(command); // Executes the specified command
-    return Plugin_Handled;
+    // Create a timer to execute the command after the sound plays
+    CreateTimer(g_fExplosionDuration, Timer_ExecuteCommand);
 }
 
 // Red Flashes + Klaxon
@@ -152,25 +237,15 @@ void PerformWarningEffect()
     {
         if (IsClientInGame(i) && !IsFakeClient(i))
         {
-            char soundAlarm[PLATFORM_MAX_PATH];
-            g_ConVars[sound_alarm].GetString(soundAlarm, sizeof(soundAlarm));
-            EmitSoundToClient(i, soundAlarm);
-        
-            char textDisplay[PLATFORM_MAX_PATH];
-            g_ConVars[text_display].GetString(textDisplay, sizeof(textDisplay));
+            PrecacheSound(g_sSoundAlarm, true);
+            EmitSoundToClient(i, g_sSoundAlarm);
+
+            char textDisplay[256];
+            Format(textDisplay, sizeof(textDisplay), "%T", g_sTextDisplay, i);
             ShowHudText(i, -1, textDisplay);
 
             // Colored Flash
-            char colorStr[32];
-            g_ConVars[text_color].GetString(colorStr, sizeof(colorStr));
-            char colors[4][8];
-            int color[4];
-            ExplodeString(colorStr, " ", colors, 4, sizeof(colors[]));
-            for (int j = 0; j < 4; j++)
-            {
-                color[j] = StringToInt(colors[j]);
-            }
-            Client_ScreenFade(i, 250, 0, 0x0001, color[0], color[1], color[2], color[3]);
+            Client_ScreenFade(i, 250, 0, 0x0001, g_iBgColor[0], g_iBgColor[1], g_iBgColor[2], g_iBgColor[3]);
         }
     }
 }
