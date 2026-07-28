@@ -44,9 +44,6 @@ char g_GameDir[64];
 bool g_TF2SDK = false;
 bool g_ThirdPerson[MAXPLAYERS + 1];
 
-// TF2C
-bool g_IsVIP[MAXPLAYERS + 1];
-
 public Plugin myinfo = 
 {
     name = "SM Utilities | Essentials",
@@ -80,7 +77,6 @@ public void OnPluginStart()
     {
         g_ConVars[convert_vscript_vip] = CreateConVar("sm_convert_vscript_vip", "1", "Convert VScript VIP to TF2C VIP.", _, true, 0.0, true, 1.0);
         AddMultiTargetFilter("@vips", TargetFilter_VIPs, "VIPs", false);
-        HookEvent("vip_tutorial", Event_VIPTutorial);
     }
     
     if (FindSendPropInfo("CTFGameRulesProxy", "m_bTruceActive") > 0)
