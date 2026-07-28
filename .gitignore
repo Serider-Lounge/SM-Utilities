@@ -8,8 +8,9 @@
 *.sh
 
 // Ignore some random plugins that are in this repo for convenience
-nuke.sp
-sm_classutils.sp
+*nuke*
+*sm_classutils*
 
 // Ignore dirs
-data/sm_utilities/feedback.json
+data/**
+docs/**
