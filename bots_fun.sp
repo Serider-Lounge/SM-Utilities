@@ -25,6 +25,7 @@ enum
 	trainingmsg,
     navbot,
 	rcbot2,
+    ripext,
 
 	MAX_LIBRARIES
 }
@@ -74,6 +75,15 @@ bool g_IsDedicatedServer;
 bool g_IsServerHibernating;
 int g_TeamCount;
 bool g_IsTF2SDK;
+
+public Plugin myinfo = 
+{
+    name = "SM Utilities | Bots Fun",
+    author = "Heapons",
+    description = "An all-in-one bot manager",
+    version = "26w31b",
+    url = "https://github.com/Heapons/SM-Utilities"
+};
 
 // Forwards
 public void OnPluginStart()
@@ -219,7 +229,14 @@ public void OnPluginStart()
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+    // trainingmsg
     MarkNativeAsOptional("SendTrainingMessageToAll");
+
+    // Rest In Pawn
+    MarkNativeAsOptional("JSONObject.FromFile");
+    MarkNativeAsOptional("JSONObject.HasKey");
+    MarkNativeAsOptional("JSONObject.Get");
+    MarkNativeAsOptional("JSONObject.GetString");
     return APLRes_Success;
 }
 
@@ -229,6 +246,7 @@ public void OnAllPluginsLoaded()
     g_Libraries[trainingmsg] = g_IsTF2SDK && LibraryExists("trainingmsg");
     g_Libraries[navbot]      = LibraryExists("navbot");
     g_Libraries[rcbot2]      = LibraryExists("RCBot2");
+    g_Libraries[ripext]      = LibraryExists("REST in Pawn");
     
     /* Target Filters */
     if (g_Libraries[rcbot2])
@@ -261,6 +279,10 @@ public void OnLibraryRemoved(const char[] name)
     else if (StrEqual(name, "RCBot2"))
     {
         g_Libraries[rcbot2] = false;
+    }
+    else if (StrEqual(name, "REST in Pawn"))
+    {
+        g_Libraries[ripext] = false;
     }
 }
 

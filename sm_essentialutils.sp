@@ -49,7 +49,7 @@ public Plugin myinfo =
     name = "SM Utilities | Essentials",
     author = "Heapons",
     description = "Tools and utilities for Source games",
-    version = "26w31a",
+    version = "26w31b",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 
@@ -171,6 +171,20 @@ public void OnPluginStart()
         RegConsoleCmd("sm_thirdperson", Command_ThirdPerson);
     }
     RegConsoleCmd("sm_credits", Command_Credits);
+}
+
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+    MarkNativeAsOptional("JSONObject.FromFile");
+    MarkNativeAsOptional("JSONObject.Get");
+    MarkNativeAsOptional("JSONObject.GetString");
+    MarkNativeAsOptional("JSONObject.Keys");
+    MarkNativeAsOptional("JSONObjectKeys.ReadKey");
+    MarkNativeAsOptional("JSONArray.Get");
+    MarkNativeAsOptional("JSONArray.GetType");
+    MarkNativeAsOptional("JSONArray.GetString");
+    MarkNativeAsOptional("JSONArray.Length.get");
+    return APLRes_Success;
 }
 
 // ConVars

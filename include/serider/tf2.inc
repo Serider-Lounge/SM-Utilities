@@ -1059,16 +1059,31 @@ stock int TF2_SpawnBot(const char[] name = NULL_STRING, const char[] team = NULL
     };
 
     char args[128];
-    if (name[0] != '\0')
-        Format(args, sizeof(args), "%s %s", args, name);
-    if (team[0] != '\0')
-        Format(args, sizeof(args), "%s %s", args, team);
-    if (class[0] != '\0')
-        Format(args, sizeof(args), "%s %s", args, class);
-    if (difficulty >= -1 && difficulty <= 3)
-        Format(args, sizeof(args), "%s %s", args, difficulty == -1 ? botDifficulty[GetRandomInt(0, 3)] : botDifficulty[difficulty]);
 
-    ServerCommand("tf_bot_add %s noquota", args);
+    if (class[0] != '\0')
+    {
+        StrCat(args, sizeof(args), class);
+        StrCat(args, sizeof(args), " ");
+    }
+    if (team[0] != '\0')
+    {
+        StrCat(args, sizeof(args), team);
+        StrCat(args, sizeof(args), " ");
+    }
+    if (difficulty >= -1 && difficulty <= 3)
+    {
+        StrCat(args, sizeof(args), difficulty == -1 ? botDifficulty[GetRandomInt(0, 3)] : botDifficulty[difficulty]);
+        StrCat(args, sizeof(args), " ");
+    }
+    if (name[0] != '\0')
+    {
+        StrCat(args, sizeof(args), name);
+        StrCat(args, sizeof(args), " ");
+    }
+
+    StrCat(args, sizeof(args), "noquota");
+
+    ServerCommand("tf_bot_add %s", args);
 
     int tf_bot = -1;
     for (int i = 1; i <= MaxClients; i++)

@@ -77,6 +77,8 @@ stock bool AddBot(int botType = BOT_TYPE_COUNT)
                 {
                     char class[32];
                     static const char playerClasses[][] = {"scout", "soldier", "pyro", "demoman", "heavyweapons", "engineer", "medic", "sniper", "spy"};
+                    strcopy(class, sizeof(class), playerClasses[GetRandomInt(0, sizeof(playerClasses) - 1)]);
+
                     if (!g_ConVars[tf_bot_reevaluate_class_in_spawnroom].BoolValue)
                     {
                         int random = GetRandomInt(1, 10);
@@ -102,10 +104,6 @@ stock bool AddBot(int botType = BOT_TYPE_COUNT)
                                 {
                                     strcopy(class, sizeof(class), "gordonfreeman");
                                 }
-                            }
-                            default:
-                            {
-                                strcopy(class, sizeof(class), playerClasses[GetRandomInt(0, sizeof(playerClasses) - 1)]);
                             }
                         }
                     }

@@ -471,16 +471,29 @@ stock int SpawnBot(const char[] name = NULL_STRING, const char[] team = NULL_STR
 
     char args[128];
     if (name[0] != '\0')
-        Format(args, sizeof(args), "%s %s", args, name);
+    {
+        StrCat(args, sizeof(args), name);
+        StrCat(args, sizeof(args), " ");
+    }
     if (team[0] != '\0')
-        Format(args, sizeof(args), "%s %s", args, team);
+    {
+        StrCat(args, sizeof(args), team);
+        StrCat(args, sizeof(args), " ");
+    }
     if (difficulty >= -1 && difficulty <= 3)
-        Format(args, sizeof(args), "%s %d", args, difficulty == -1 ? GetRandomInt(0, 3) : difficulty);
+    {
+        char botDifficulty[16];
+        FormatEx(botDifficulty, sizeof(botDifficulty), "%d", difficulty == -1 ? GetRandomInt(0, 3) : difficulty);
+        StrCat(args, sizeof(args), botDifficulty);
+        StrCat(args, sizeof(args), " ");
+    }
+
+    StrCat(args, sizeof(args), "noquota");
 
     // https://developer.valvesoftware.com/wiki/Bot#Related_Console_Commands_and_Variables
     char gameDir[32];
     GetGameFolderName(gameDir, sizeof(gameDir));
-    ServerCommand("%sbot_add %s noquota", StrEqual(gameDir, "hl2mp") ? "hl2mp_" : "", args);
+    ServerCommand("%sbot_add %s", StrEqual(gameDir, "hl2mp") ? "hl2mp_" : "", args);
 
     int client = -1;
     for (int i = 1; i <= MaxClients; i++)
