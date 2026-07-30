@@ -96,10 +96,6 @@ public void Event_TeamplayRoundStart(Event event, const char[] name, bool dontBr
                 if (team <= 1)
                     continue;
 
-                //int enemyTeam = team + 1;
-                //if (enemyTeam > g_TeamCount || enemyTeam < 2)
-                //    enemyTeam = 2;
-
                 int flag = CreateEntityByName("item_teamflag");
                 if (!IsValidEntity(flag))
                     continue;
@@ -111,10 +107,6 @@ public void Event_TeamplayRoundStart(Event event, const char[] name, bool dontBr
                 DispatchKeyValueInt(flag, "solid", 0);
                 DispatchKeyValueInt(flag, "GameType", 1);
 
-                char teamnum[4];
-                //IntToString(enemyTeam, teamnum, sizeof(teamnum));
-                //IntToString(team, teamnum, sizeof(teamnum));
-                //DispatchKeyValue(flag, "teamnum", teamnum);
                 DispatchSpawn(flag);
 
                 float cartPos[3];

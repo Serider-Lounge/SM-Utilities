@@ -5,7 +5,6 @@ public bool TargetFilter_RCBots(const char[] pattern, ArrayList clients, int cli
         if (!IsClientInGame(i))
             continue;
 
-        bool isRCBot = view_as<bool>(IsRCBot2Client(i));
         if (IsRCBot2Client(i))
         {
             clients.Push(i);

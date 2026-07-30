@@ -1,6 +1,8 @@
 # SM Utilities
 Useful commands and includes for server owners & plugin developers alike.
 
+**Minimum SourceMod build required:** [1.13.7301](https://www.sourcemod.net/downloads.php?branch=dev&all=1)
+
 > [!IMPORTANT]
 > For anything that involves [JSON](https://en.wikipedia.org/wiki/JSON) files, [Rest In Pawn](https://github.com/ErikMinekus/sm-ripext) is a required dependency‼
 

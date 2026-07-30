@@ -285,9 +285,9 @@ public void OnMapStart()
     }
 }
 
-#include "sm_essentialutils\clients.sp"
-#include "sm_essentialutils\commands.sp"
-#include "sm_essentialutils\events.sp"
-#include "sm_essentialutils\menus.sp"
-#include "sm_essentialutils\stocks.sp"
-#include "sm_essentialutils\targets.sp"
+#include "sm_essentialutils/clients.sp"
+#include "sm_essentialutils/commands.sp"
+#include "sm_essentialutils/events.sp"
+#include "sm_essentialutils/menus.sp"
+#include "sm_essentialutils/stocks.sp"
+#include "sm_essentialutils/targets.sp"
