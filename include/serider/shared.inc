@@ -449,3 +449,48 @@ stock int GetActiveTeamCount()
     }
     return FindSendPropInfo("CTFGameRulesProxy", "m_iTeamsActive") > 0 ? count : teamCount - 2;
 }
+
+/**
+ * Spawns a bot client.
+ * 
+ * @param name          Player name.
+ * @param team          Team name.
+ * @param difficulty    Difficulty skill level (set to '-1' for random).
+ * @return              Client index of the spawned bot, or '-1' otherwise.
+ */
+stock int SpawnBot(const char[] name = NULL_STRING, const char[] team = NULL_STRING, int difficulty = 1)
+{
+    bool[] bots = new bool[MaxClients + 1];
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i) && IsFakeClient(i))
+        {
+            bots[i] = true;
+        }
+    }
+
+    char args[128];
+    if (name[0] != '\0')
+        Format(args, sizeof(args), "%s %s", args, name);
+    if (team[0] != '\0')
+        Format(args, sizeof(args), "%s %s", args, team);
+    if (difficulty >= -1 && difficulty <= 3)
+        Format(args, sizeof(args), "%s %d", args, difficulty == -1 ? GetRandomInt(0, 3) : difficulty);
+
+    // https://developer.valvesoftware.com/wiki/Bot#Related_Console_Commands_and_Variables
+    char gameDir[32];
+    GetGameFolderName(gameDir, sizeof(gameDir));
+    ServerCommand("%sbot_add %s noquota", StrEqual(gameDir, "hl2mp") ? "hl2mp_" : "", args);
+
+    int client = -1;
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!bots[i] && IsClientInGame(i) && IsFakeClient(i))
+        {
+            client = i;
+            break;
+        }
+    }
+
+    return client;
+}

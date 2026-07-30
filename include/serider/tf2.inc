@@ -993,9 +993,9 @@ stock int TF2_GetPopFileName(char[] buffer, int maxlen, bool cleanup = false)
  * @param team          Team name.
  * @param class         Class identifier (used by 'joinclass' command or as per defined in 'scripts/playerclasses/<class>.ctx').
  * @param difficulty    Difficulty skill level (set to '-1' for random).
- * @return              Client index of the spawned bot on success, -1 on failure.
+ * @return              Client index of the spawned bot, or '-1' otherwise.
  */
-stock int TF2_SpawnBot(const char[] name = "TFBot", const char[] team = NULL_STRING, const char[] class = NULL_STRING, int difficulty = 1)
+stock int TF2_SpawnBot(const char[] name = NULL_STRING, const char[] team = NULL_STRING, const char[] class = NULL_STRING, int difficulty = 1)
 {
     bool[] bots = new bool[MaxClients + 1];
     for (int i = 1; i <= MaxClients; i++)
@@ -1006,27 +1006,25 @@ stock int TF2_SpawnBot(const char[] name = "TFBot", const char[] team = NULL_STR
         }
     }
 
-    char botDifficulty[16];
-    switch (difficulty)
+    static const char botDifficulty[][] =
     {
-        case -1:
-        {
-            int random = GetRandomInt(0, 3);
-            switch (random)
-            {
-                case 0: strcopy(botDifficulty, sizeof(botDifficulty), "easy");
-                case 1: strcopy(botDifficulty, sizeof(botDifficulty), "normal");
-                case 2: strcopy(botDifficulty, sizeof(botDifficulty), "hard");
-                case 3: strcopy(botDifficulty, sizeof(botDifficulty), "expert");
-            }
-        }
-        case 0: strcopy(botDifficulty, sizeof(botDifficulty), "easy");
-        case 1: strcopy(botDifficulty, sizeof(botDifficulty), "normal");
-        case 2: strcopy(botDifficulty, sizeof(botDifficulty), "hard");
-        case 3: strcopy(botDifficulty, sizeof(botDifficulty), "expert");
-    }
+        "easy",
+        "normal",
+        "hard",
+        "expert"
+    };
 
-    ServerCommand("tf_bot_add noquota %s %s %s %s", name, botDifficulty, team, class);
+    char args[128];
+    if (name[0] != '\0')
+        Format(args, sizeof(args), "%s %s", args, name);
+    if (team[0] != '\0')
+        Format(args, sizeof(args), "%s %s", args, team);
+    if (class[0] != '\0')
+        Format(args, sizeof(args), "%s %s", args, class);
+    if (difficulty >= -1 && difficulty <= 3)
+        Format(args, sizeof(args), "%s %d", args, difficulty == -1 ? GetRandomInt(0, 3) : difficulty);
+
+    ServerCommand("tf_bot_add %s noquota", args);
 
     int tf_bot = -1;
     for (int i = 1; i <= MaxClients; i++)
