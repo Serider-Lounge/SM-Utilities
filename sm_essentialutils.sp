@@ -92,7 +92,7 @@ public void OnPluginStart()
 
     if (FindSendPropInfo("CTFGameRulesProxy", "m_bInSetup") > 0)
     {
-        g_ConVars[setup_fastbuild] = CreateConVar("sm_setup_fastbuild", "0", "Enable fast building for sentry guns, dispensers, and teleporters during setup time.", _, true, 0.0, true, 1.0);
+        g_ConVars[setup_fastbuild] = CreateConVar("sm_setup_fastbuild", "0", "Enable fast building during setup time.", _, true, 0.0, true, 1.0);
     }
 
     AutoExecConfig(true, "sm_essentialutils");

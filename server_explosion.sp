@@ -2,6 +2,8 @@
 #include <sdktools>
 #include <keyvalues>
 
+#define PLUGIN_PREFIX "[\x03Server Explosion\x01]"
+
 // GLOBAL VARIABLES
 int g_iFlashCounter = 0;
 Handle g_hFlashTimer = null;
@@ -27,6 +29,7 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
+    // Translations
     LoadTranslations("server_explosion.phrases");
 
     // Commands
@@ -55,15 +58,15 @@ void LoadPresets()
     char path[PLATFORM_MAX_PATH];
     BuildPath(Path_SM, path, sizeof(path), "configs/server_explosion/presets.cfg");
 
-    LogMessage("[ServerExplosion] Attempting to load presets from: %s", path);
+    LogMessage("[Server Explosion] Attempting to load presets from: %s", path);
     
     if (!g_hPresets.ImportFromFile(path))
     {
-        LogError("[ServerExplosion] Failed to load presets file: %s", path);
+        LogError("[Server Explosion] Failed to load presets file: %s", path);
         return;
     }
 
-    LogMessage("[ServerExplosion] Presets file loaded successfully");
+    LogMessage("[Server Explosion] Presets file loaded successfully");
     
     g_hPresets.Rewind();
     if (g_hPresets.GotoFirstSubKey())
@@ -72,19 +75,19 @@ void LoadPresets()
         {
             char keyName[64];
             g_hPresets.GetSectionName(keyName, sizeof(keyName));
-            LogMessage("[ServerExplosion] Found preset: %s", keyName);
+            LogMessage("[Server Explosion] Found preset: %s", keyName);
         }
         while (g_hPresets.GotoNextKey());
         g_hPresets.Rewind();
     }
     else
     {
-        LogError("[ServerExplosion] No presets found in file!");
+        LogError("[Server Explosion] No presets found in file!");
     }
 
     if (!LoadPresetValues("default"))
     {
-        LogError("[ServerExplosion] Failed to load 'default' preset from presets.cfg");
+        LogError("[Server Explosion] Failed to load 'default' preset from presets.cfg");
     }
 }
 
@@ -92,15 +95,15 @@ bool LoadPresetValues(const char[] presetName)
 {
     g_hPresets.Rewind();
 
-    LogMessage("[ServerExplosion] Looking for preset: %s", presetName);
+    LogMessage("[Server Explosion] Looking for preset: %s", presetName);
     
     if (!g_hPresets.JumpToKey(presetName))
     {
-        LogError("[ServerExplosion] Preset '%s' not found in presets.cfg", presetName);
+        LogError("[Server Explosion] Preset '%s' not found in presets.cfg", presetName);
         return false;
     }
 
-    LogMessage("[ServerExplosion] Found preset '%s', loading values...", presetName);
+    LogMessage("[Server Explosion] Found preset '%s', loading values...", presetName);
 
     g_hPresets.GetString("sound_alarm",     g_sSoundAlarm,     sizeof(g_sSoundAlarm),     "ambient/alarms/klaxon1.wav");
     g_hPresets.GetString("sound_explosion", g_sSoundExplosion, sizeof(g_sSoundExplosion), "ambient/explosions/explode_1.wav");
@@ -151,7 +154,7 @@ public Action Command_Explode(int client, int args)
 
     if (!LoadPresetValues(presetName))
     {
-        ReplyToCommand(client, "[SM] Preset '%s' not found in presets.cfg!", presetName);
+        CReplyToCommand(client, PLUGIN_PREFIX ... " Preset '%s' not found in presets.cfg!", presetName);
         return Plugin_Handled;
     }
 
@@ -169,7 +172,7 @@ public Action Command_Explode(int client, int args)
     // Start the countdown timer
     g_hFlashTimer = CreateTimer(g_fFlashInterval, Timer_WarningLoop, _, TIMER_REPEAT);
 
-    ReplyToCommand(client, "[SM] Imminent Server Explosion Activated (preset: %s)", presetName);
+    CReplyToCommand(client, PLUGIN_PREFIX ... " Imminent Server Explosion Activated (preset: %s)", presetName);
     return Plugin_Handled;
 }
 
