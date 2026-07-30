@@ -43,5 +43,5 @@ const TFCond TF2CCond_Brick             = view_as<TFCond>(TF2C_COND_BRICK);
  */
 stock int TF2C_GetAssignedVIP(TFTeam team)
 {
-    return GetEntProp(GetTeamEntity(view<int>(team)), Prop_Send, "m_iVIP");
+    return GetEntProp(GetTeamEntity(view_as<int>(team)), Prop_Send, "m_iVIP");
 }
