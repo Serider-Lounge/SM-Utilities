@@ -42,11 +42,12 @@ jobs:
       - name: Download dependencies
         run: |
           mkdir -p include/multicolors
+          mkdir -p include/ripext
           curl -sSL https://raw.githubusercontent.com/Bara/Multi-Colors/refs/heads/master/addons/sourcemod/scripting/include/multicolors.inc -o include/multicolors.inc
           curl -sSL https://raw.githubusercontent.com/Bara/Multi-Colors/refs/heads/master/addons/sourcemod/scripting/include/multicolors/colors.inc -o include/multicolors/colors.inc
           curl -sSL https://raw.githubusercontent.com/Bara/Multi-Colors/refs/heads/master/addons/sourcemod/scripting/include/multicolors/morecolors.inc -o include/multicolors/morecolors.inc
           curl -sSL https://raw.githubusercontent.com/arthurdead/sm-plugins/refs/heads/master/addons/sourcemod/scripting/include/trainingmsg.inc -o include/trainingmsg.inc
-          curl -sSL https://raw.githubusercontent.com/Malifox/tf2attributes/refs/heads/virtual_address/scripting/include/tf2attributes.inc -o include/tf2attributes.inc
+          curl -sSL https://github.com/srcdslab/sm-ext-ripext/raw/refs/heads/main/pawn/scripting/include/ripext/json.inc -o include/ripext/json.inc
 
       - name: Compile plugins
         run: |

@@ -1,6 +1,9 @@
 # SM Utilities
 Useful commands and includes for server owners & plugin developers alike.
 
+> [!IMPORTANT]
+> For anything that involves [JSON](https://en.wikipedia.org/wiki/JSON) files, [Rest In Pawn](https://github.com/ErikMinekus/sm-ripext) is a required dependency‼
+
 # Includes
 ## Serider
 
