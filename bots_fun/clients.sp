@@ -1,6 +1,6 @@
 public void OnClientPutInServer(int client)
 {
-    if (IsFakeClient(client) && g_ConVars[plugin_bot_autoteambalance].BoolValue)
+    if (g_ConVars[plugin_bot_autoteambalance].BoolValue && IsFakeClient(client))
     {
         SDKHook(client, SDKHook_CanBeAutobalanced, CanBeAutoBalanced);
     }
