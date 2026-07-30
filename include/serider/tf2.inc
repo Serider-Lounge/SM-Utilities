@@ -352,29 +352,6 @@ methodmap TFPlayer < Entity
 
 
     /**
-     * Gets the player's class name as a string.
-     *
-     * @param buffer    Buffer to store class name.
-     * @param maxlen    Maximum length of buffer.
-     */
-    public void GetClassName(char[] buffer, int maxlen)
-    {
-        switch (this.class)
-        {
-            case TFClass_Scout:     strcopy(buffer, maxlen, "scout");
-            case TFClass_Sniper:    strcopy(buffer, maxlen, "sniper");
-            case TFClass_Soldier:   strcopy(buffer, maxlen, "soldier");
-            case TFClass_DemoMan:   strcopy(buffer, maxlen, "demo");
-            case TFClass_Medic:     strcopy(buffer, maxlen, "medic");
-            case TFClass_Heavy:     strcopy(buffer, maxlen, "heavy");
-            case TFClass_Pyro:      strcopy(buffer, maxlen, "pyro");
-            case TFClass_Spy:       strcopy(buffer, maxlen, "spy");
-            case TFClass_Engineer:  strcopy(buffer, maxlen, "engineer");
-            case TFClass_Civilian:  strcopy(buffer, maxlen, "civilian");
-        }
-    }
-
-    /**
      * Returns true if the player is an arena spectator.
      *
      * @return True if arena spectator, false otherwise.
@@ -590,22 +567,12 @@ methodmap TFPlayer < Entity
         char item_slot[32];
         bool classCompatible = false;
 
-        static const char class_names[][] = 
-        {
-            "scout",
-            "sniper",
-            "soldier",
-            "demo",
-            "medic",
-            "heavy",
-            "pyro",
-            "spy",
-            "engineer",
-            // Team Fortress 2 Classified
-            "civilian",
-            // Fortress Connected
-            "john"
-        };
+        char playerClass[PLATFORM_MAX_PATH];
+        GetClientModel(this.index, playerClass, sizeof(playerClass));
+        ReplaceString(playerClass, sizeof(playerClass), "models/player/", "");
+        ReplaceString(playerClass, sizeof(playerClass), ".mdl", "");
+        if (playerClass[0] == '\0')
+            return false;
 
         char mapName[96], mapDisplayName[64], mapSchema[PLATFORM_MAX_PATH];
         GetCurrentMap(mapName, sizeof(mapName));
@@ -694,12 +661,9 @@ methodmap TFPlayer < Entity
                         kv.GetString("item_slot", item_slot, sizeof(item_slot));
                     }
 
-                    char playerClassName[16];
-                    this.GetClassName(playerClassName, sizeof(playerClassName));
-
                     if (kv.JumpToKey("used_by_classes"))
                     {
-                        classCompatible = kv.GetNum(playerClassName) > 0;
+                        classCompatible = kv.GetNum(playerClass) > 0;
                     }
 
                     kv.Rewind();
@@ -1102,7 +1066,7 @@ stock int TF2_SpawnBot(const char[] name = NULL_STRING, const char[] team = NULL
     if (class[0] != '\0')
         Format(args, sizeof(args), "%s %s", args, class);
     if (difficulty >= -1 && difficulty <= 3)
-        Format(args, sizeof(args), "%s %d", args, difficulty == -1 ? GetRandomInt(0, 3) : difficulty);
+        Format(args, sizeof(args), "%s %s", args, difficulty == -1 ? botDifficulty[GetRandomInt(0, 3)] : botDifficulty[difficulty]);
 
     ServerCommand("tf_bot_add %s noquota", args);
 
