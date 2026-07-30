@@ -10,6 +10,9 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 
 public Action Timer_PlayerSpawn(Handle timer, int client)
 {
+    if (client <= 0 || client > MaxClients || !IsClientInGame(client))
+        return Plugin_Stop;
+
     TFPlayer player = TFPlayer(client);
     player.SetForcedTauntCam(g_ThirdPerson[client]);
     return Plugin_Stop;

@@ -257,12 +257,10 @@ public void OnMapStart()
     for (int i = 0; i < teamCount; i++)
     {
         GetTeamName(i, teamName, sizeof(teamName));
-        PrintToServer(PLUGIN_PREFIX ... " Found team: '%s'", teamName);
-
-        teamName[0] = CharToLower(teamName[0]);
-        Format(targetFilter, sizeof(targetFilter), "@%s", teamName);
+        strcopy(targetFilter, sizeof(targetFilter), teamName);
+        targetFilter[0] = CharToLower(targetFilter[0]);
+        Format(targetFilter, sizeof(targetFilter), "@%s", targetFilter);
         AddMultiTargetFilter(targetFilter, TargetFilter_Team, teamName, false);
-        PrintToServer(PLUGIN_PREFIX ... " Added target filter: '%s'", targetFilter);
     }
 
     /* Items Schema */

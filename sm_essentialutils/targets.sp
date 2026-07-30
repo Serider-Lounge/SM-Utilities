@@ -45,7 +45,7 @@ public bool TargetFilter_VIPs(const char[] pattern, ArrayList clients, int clien
         if (!IsClientInGame(i))
             continue;
 
-        bool isVIP = (TF2C_GetAssignedVIP(GetClientTeam(i)) == i);
+        bool isVIP = TF2C_GetAssignedVIP(GetClientTeam(i)) == i;
         if ((negate && !isVIP) || (!negate && isVIP))
         {
             clients.Push(i);
