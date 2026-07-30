@@ -1,6 +1,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <keyvalues>
+#include <multicolors>
 
 #define PLUGIN_PREFIX "[\x03Server Explosion\x01]"
 
