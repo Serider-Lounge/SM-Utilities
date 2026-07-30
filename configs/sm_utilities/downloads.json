@@ -1,0 +1,10 @@
+{
+    "maps":
+    {
+        "^ctf_.*$":
+        [
+            "materials/path/to/(foo|bar).*",
+            "models/path/to/file.*"
+        ]
+    }
+}

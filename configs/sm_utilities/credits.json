@@ -1,0 +1,20 @@
+{
+    "credits":
+    [
+        {
+            "name": "Example",
+            "url": "https://example.com",
+            "contributions":
+            [
+                {
+                    "name": "Contribution Name",
+                    "url": "https://example.com/contribution"
+                },
+                {
+                    "name": "Another Contribution Name",
+                    "url": "https://example.com/contribution2"
+                }
+            ]
+        }
+    ]
+}
