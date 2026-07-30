@@ -10,6 +10,7 @@
 // Ignore some random plugins that are in this repo for convenience
 *nuke*
 *sm_classutils*
+*custom_players*
 
 // Ignore dirs
 data/**
