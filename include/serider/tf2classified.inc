@@ -34,3 +34,14 @@ const TFCond TF2CCond_Concussion        = view_as<TFCond>(TF2C_COND_CONCUSSION);
 const TFCond TF2CCond_MirvSlow          = view_as<TFCond>(TF2C_COND_MIRV_SLOW);
 const TFCond TF2CCond_ResidualHeal      = view_as<TFCond>(TF2C_COND_RESIDUAL_HEAL);
 const TFCond TF2CCond_Brick             = view_as<TFCond>(TF2C_COND_BRICK);
+
+/**
+ * Gets the assigned VIP of the team.
+ *
+ * @param team    Index of the team.
+ * @return        Client index of the assigned VIP.
+ */
+stock int TF2C_GetAssignedVIP(TFTeam team)
+{
+    return GetEntProp(GetTeamEntity(view<int>(team)), Prop_Send, "m_iVIP");
+}

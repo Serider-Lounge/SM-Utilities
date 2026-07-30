@@ -31,6 +31,22 @@ enum LifeState
     Discardbody
 };
 
+// https://github.com/ValveSoftware/source-sdk-2013/blob/master/src/game/shared/tf/tf_shareddefs.h#L277-L293
+enum
+{
+	TF_GAMETYPE_UNDEFINED,
+	TF_GAMETYPE_CTF,
+	TF_GAMETYPE_CP,
+	TF_GAMETYPE_ESCORT,
+	TF_GAMETYPE_ARENA,
+	TF_GAMETYPE_MVM,
+	TF_GAMETYPE_RD,
+	TF_GAMETYPE_PASSTIME,
+	TF_GAMETYPE_PD,
+
+	TF_GAMETYPE_COUNT
+};
+
 enum
 {
     TF_AMMO_DUMMY,
@@ -40,6 +56,7 @@ enum
     TF_AMMO_GRENADES1,
     TF_AMMO_GRENADES2,
     TF_AMMO_GRENADES3,
+
     TF_AMMO_COUNT
 };
 
@@ -224,8 +241,15 @@ methodmap TFPlayer < Entity
 
             int lifeState = GetEntProp(this.index, Prop_Send, "m_lifeState");
             SetEntProp(this.index, Prop_Send, "m_lifeState", view_as<LifeState>(Dead));
+            
+            // Workaround to brute-force the team change in MVM
+            bool isMVM = view_as<bool>(GameRules_GetProp("m_bPlayingMannVsMachine"));
+            GameRules_SetProp("m_bPlayingMannVsMachine", false);
+
             TF2_ChangeClientTeam(this.index, team);
+            
             SetEntProp(this.index, Prop_Send, "m_lifeState", lifeState);
+            GameRules_SetProp("m_bPlayingMannVsMachine", isMVM ? 1 : 0);
         }
     }
 
@@ -566,7 +590,7 @@ methodmap TFPlayer < Entity
         char item_slot[32];
         bool classCompatible = false;
 
-        static const char class_names[11][16] =
+        static const char class_names[][] = 
         {
             "scout",
             "sniper",
@@ -577,22 +601,31 @@ methodmap TFPlayer < Entity
             "pyro",
             "spy",
             "engineer",
-            "civilian", // Team Fortress 2 Classified
-            "john" // Fortress Connected
+            // Team Fortress 2 Classified
+            "civilian",
+            // Fortress Connected
+            "john"
         };
 
-        char mapName[96], mapSchema[PLATFORM_MAX_PATH];
+        char mapName[96], mapDisplayName[64], mapSchema[PLATFORM_MAX_PATH];
         GetCurrentMap(mapName, sizeof(mapName));
-        Format(mapSchema, sizeof(mapSchema), "scripts/items/%s_items_game.txt", mapName);
+        GetMapDisplayName(mapName, mapDisplayName, sizeof(mapDisplayName));
+        Format(mapSchema, sizeof(mapSchema), "scripts/items/%s_items_game.txt", mapDisplayName);
 
         char paths[4][PLATFORM_MAX_PATH];
-        // Shared
-        strcopy(paths[0], sizeof(paths[]), "scripts/items/items_game.txt");
-        // Fortress Connected
-        strcopy(paths[1], sizeof(paths[]), "scripts/items/items_custom.txt");
-        // Team Fortress 2 Classified
-        strcopy(paths[2], sizeof(paths[]), mapSchema);
-        strcopy(paths[3], sizeof(paths[]), "scripts/items/custom_items_game.txt");
+        for (int i = 0; i < sizeof(paths); i++)
+        {
+            switch (i)
+            {
+                // Shared
+                case 0: strcopy(paths[i], sizeof(paths[]), "scripts/items/items_game.txt");
+                // Fortress Connected
+                case 1: strcopy(paths[i], sizeof(paths[]), "scripts/items/items_custom.txt");
+                // Team Fortress 2 Classified
+                case 2: strcopy(paths[i], sizeof(paths[]), mapSchema);
+                case 3: strcopy(paths[i], sizeof(paths[]), "scripts/items/custom_items_game.txt");
+            }
+        }
 
         if (classname[0] != '\0')
         {
@@ -604,14 +637,11 @@ methodmap TFPlayer < Entity
             IntToString(index, itemKey, sizeof(itemKey));
 
             bool found = false;
+            KeyValues kv = new KeyValues("items_game");
             for (int i = 0; i < sizeof(paths) && !found; i++)
             {
-                KeyValues kv = new KeyValues("items_game");
                 if (!kv.ImportFromFile(paths[i]))
-                {
-                    delete kv;
                     continue;
-                }
 
                 if (kv.JumpToKey("items") && kv.JumpToKey(itemKey))
                 {
@@ -675,8 +705,8 @@ methodmap TFPlayer < Entity
                     kv.Rewind();
                     found = true;
                 }
-                delete kv;
             }
+            delete kv;
 
             if (!found || item_class[0] == '\0')
             {
@@ -924,6 +954,56 @@ methodmap TFWeapon < Entity
             return GetEntProp(this.index, Prop_Send, "m_iItemDefinitionIndex");
         }
     }
+
+    /**
+     * Gets the weapon's "name" entry from the item definition index.
+     *
+     * @param buffer    Buffer to store the name.
+     * @param maxlen    Maximum length of the buffer.
+     */
+    public void GetName(char[] buffer, int maxlen)
+    {
+        char mapName[96], mapDisplayName[64], mapSchema[PLATFORM_MAX_PATH];
+        GetCurrentMap(mapName, sizeof(mapName));
+        GetMapDisplayName(mapName, mapDisplayName, sizeof(mapDisplayName));
+        Format(mapSchema, sizeof(mapSchema), "scripts/items/%s_items_game.txt", mapDisplayName);
+
+        char paths[4][PLATFORM_MAX_PATH];
+        for (int i = 0; i < sizeof(paths); i++)
+        {
+            switch (i)
+            {
+                // Shared
+                case 0: strcopy(paths[i], sizeof(paths[]), "scripts/items/items_game.txt");
+                // Fortress Connected
+                case 1: strcopy(paths[i], sizeof(paths[]), "scripts/items/items_custom.txt");
+                // Team Fortress 2 Classified
+                case 2: strcopy(paths[i], sizeof(paths[]), mapSchema);
+                case 3: strcopy(paths[i], sizeof(paths[]), "scripts/items/custom_items_game.txt");
+            }
+        }
+
+        char itemKey[16];
+        IntToString(this.defindex, itemKey, sizeof(itemKey));
+
+        KeyValues kv = new KeyValues("items_game");
+        for (int i = 0; i < sizeof(paths); i++)
+        {
+            if (!kv.ImportFromFile(paths[i]))
+                continue;
+
+            if (kv.JumpToKey("items") && kv.JumpToKey(itemKey))
+            {
+                if (kv.GetDataType("name") != KvData_None)
+                {
+                    kv.GetString("name", buffer, maxlen);
+                    delete kv;
+                    return;
+                }
+            }
+        }
+        delete kv;
+    }
 }
 
 /**
@@ -1037,4 +1117,23 @@ stock int TF2_SpawnBot(const char[] name = NULL_STRING, const char[] team = NULL
     }
 
     return tf_bot;
+}
+
+/**
+ * Ends the current round.
+ * 
+ * @param team             Winner team index.
+ * @param force_map_reset  Whether to force a map reset.
+ * @return                 True if the round was ended successfully, false otherwise.
+ */
+stock void TF2_EndRound(TFTeam team = TFTeam_Unassigned, bool force_map_reset = true)
+{
+	int entity = CreateEntityByName("game_round_win");
+	if (entity != -1)
+	{
+		SetEntProp(entity, Prop_Data, "m_iTeamNum", team);
+        SetEntProp(entity, Prop_Data, "m_bForceMapReset", force_map_reset);
+		AcceptEntityInput(entity, "RoundWin");
+        RemoveEntity(entity);
+	}
 }
