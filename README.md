@@ -27,13 +27,7 @@ Useful commands and includes for server owners & plugin developers alike.
 
 ### Configuration
 
-#### `presets.cfg`
-
-##### Path
-
-```
-addons/sourcemod/configs/server_explosion/presets.cfg
-```
+#### [`presets.cfg`](https://github.com/Serider-Lounge/SM-Utilities/tree/main/configs/server_explosion/presets.cfg)
 
 ##### Example
 
@@ -58,7 +52,7 @@ addons/sourcemod/configs/server_explosion/presets.cfg
 - `flash_interval`: Interval in seconds between each flash/warning effect.
 - `duration`: Duration in seconds of the final explosion screen fade before executing the command.
 - `execute_command`: Server command to execute when the explosion sequence is complete.
-- `text_display`: Translation phrase name for the HUD text displayed during warnings.
+- [`text_display`](https://github.com/Serider-Lounge/SM-Utilities/blob/main/translations/server_explosion.phrases.txt): Translation phrase name for the HUD text displayed during warnings.
 - `bg_color`: Background color and alpha of the screen flash during warnings. Format: `R G B A`.
 - `bg_color_fade`: Background color and alpha of the final explosion screen flash. Format: `R G B A`.
 
@@ -107,7 +101,30 @@ https://github.com/user-attachments/assets/18b14705-3b3e-4046-9124-49215f99c853
 
 ### Configuration
 
----
+#### [`bots_fun.json`](https://github.com/Serider-Lounge/SM-Utilities/tree/main/configs/sm_utilities/bots_fun.json)
+
+Renames bot players based on their player models.
+
+##### Example
+
+```json
+{
+    "bot_names":
+    {
+        //"substring": "Bot Name",
+        "scout":      "Scout",
+        "soldier":    "Soldier",
+        "pyro":       "Pyro",
+        "demo":       "Demoman",
+        "heavy":      "Heavy Weapons Guy",
+        "engineer":   "Engineer",
+        "medic":      "Medic",
+        "sniper":     "Sniper",
+        "spy":        "Spy",
+        "civilian":   "Civilian"
+    }
+}
+```
 
 ## Essentials
 
@@ -151,8 +168,6 @@ https://github.com/user-attachments/assets/18b14705-3b3e-4046-9124-49215f99c853
 | `sm_tp` / `sm_thirdperson` | Switch to third-person view |
 | `sm_credits` | Opens a menu to view server contributors |
 
-#### `addons/sourcemod/configs/sm_utilities/credits.json`
-
 ### Target Filters
 
 | Filter | Description |
@@ -166,7 +181,7 @@ https://github.com/user-attachments/assets/18b14705-3b3e-4046-9124-49215f99c853
 > [!WARNING]
 > Slash comments aren't supported!
 
-###### `credits.json`
+###### [`credits.json`](https://github.com/Serider-Lounge/SM-Utilities/tree/main/configs/sm_utilities/credits.json)
 ```json
 {
     "credits":
@@ -192,7 +207,8 @@ https://github.com/user-attachments/assets/18b14705-3b3e-4046-9124-49215f99c853
 - `contributions`
   - `name`: Title of the contribution.
   - `url`: Link source of the contribution.
-###### `downloads.json`
+
+###### [`downloads.json`](https://github.com/Serider-Lounge/SM-Utilities/blob/main/configs/sm_utilities/downloads.json)
 ```json
 {
     // Add files to the Downloads Table and automatically precache them
