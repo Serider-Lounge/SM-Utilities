@@ -16,7 +16,7 @@ public Plugin myinfo =
     name = "SM Utilities | Server Utilities",
     author = "Heapons",
     description = "Tools and utilities for managing servers",
-    version = "26w32a",
+    version = "26w31a",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 
@@ -59,6 +59,9 @@ public Action Command_Restart(int args)
 public Action Command_Retry(int client, int args)
 {
     if (client <= 0 || client > MaxClients)
+        return Plugin_Continue;
+    
+    if (!IsClientConnected(client))
         return Plugin_Continue;
     
     if (IsFakeClient(client))
