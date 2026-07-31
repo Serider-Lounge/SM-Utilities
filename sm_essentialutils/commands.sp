@@ -109,7 +109,7 @@ public Action Command_Health(int client, int args)
     TFPlayer target;
     for (int i = 0; i < targetCount; i++)
     {
-            target = TFPlayer(targets[i]);
+        target = TFPlayer(targets[i]);
         target.health = value;
     }
 
@@ -119,7 +119,7 @@ public Action Command_Health(int client, int args)
     }
     else
     {
-            target = TFPlayer(targets[0]);
+        target = TFPlayer(targets[0]);
         CReplyToCommandEx(client, target.index, PLUGIN_PREFIX ... " Set health to \x05%d\x01 for \x03%N", value, target.index);
     }
 
