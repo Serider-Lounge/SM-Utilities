@@ -281,8 +281,7 @@ public void OnMapStart()
     if (StrEqual(g_GameDir, "tf2classified"))
     {
         char path[PLATFORM_MAX_PATH] = "scripts/items/custom_items_game.txt";
-        bool fileExists = FileExists(path);
-        if (fileExists)
+        if (FileExists(path))
         {
             if (PrecacheGeneric(path))
             {
