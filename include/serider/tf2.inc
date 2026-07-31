@@ -47,6 +47,18 @@ enum
 	TF_GAMETYPE_COUNT
 };
 
+// https://github.com/ValveSoftware/source-sdk-2013/blob/master/src/game/shared/tf/tf_shareddefs.h#L256-L269
+enum
+{
+	TF_FLAGTYPE_CTF = 0,
+	TF_FLAGTYPE_ATTACK_DEFEND,
+	TF_FLAGTYPE_TERRITORY_CONTROL,
+	TF_FLAGTYPE_INVADE,
+	TF_FLAGTYPE_RESOURCE_CONTROL,
+	TF_FLAGTYPE_ROBOT_DESTRUCTION,
+	TF_FLAGTYPE_PLAYER_DESTRUCTION
+};
+
 enum
 {
     TF_AMMO_DUMMY,
