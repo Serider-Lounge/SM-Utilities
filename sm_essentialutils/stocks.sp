@@ -252,7 +252,6 @@ stock void ProcessDownloadsConfig()
                                     if (FileExists(filePath))
                                     {
                                         AddFileToDownloadsTable(filePath);
-                                        PrecacheFile(filePath);
                                     }
                                     else
                                     {
@@ -272,7 +271,6 @@ stock void ProcessDownloadsConfig()
                                                     if (fileRegex.Match(fullPath) > 0)
                                                     {
                                                         AddFileToDownloadsTable(fullPath);
-                                                        PrecacheFile(fullPath);
                                                     }
                                                 }
                                             }

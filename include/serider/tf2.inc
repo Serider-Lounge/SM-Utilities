@@ -95,7 +95,6 @@ static const int ammo_types[TF_AMMO_COUNT] =
 };
 
 const TFClassType TFClass_Civilian = view_as<TFClassType>(10);
-const TFTeam TFTeam_Halloween = view_as<TFTeam>(5);
 
 methodmap TFPlayer < Entity
 {
@@ -316,6 +315,7 @@ methodmap TFPlayer < Entity
             int green = (color >> 8) & 0xFF;
             int blue = color & 0xFF;
             SetEntityRenderColor(this.index, red, green, blue, 255);
+            /*
             int wearable = -1;
             while ((wearable = FindEntityByClassname(wearable, "tf_wearable")) != -1)
             {
@@ -325,6 +325,7 @@ methodmap TFPlayer < Entity
                     SetEntityRenderColor(wearable, red, green, blue, 255);
                 }
             }
+            */
         }
     }
 
@@ -574,17 +575,6 @@ methodmap TFPlayer < Entity
             return false;
 
         char item_class[64];
-        int slot = -1;
-        int bucket = -1;
-        char item_slot[32];
-        bool classCompatible = false;
-
-        char playerClass[PLATFORM_MAX_PATH];
-        GetClientModel(this.index, playerClass, sizeof(playerClass));
-        ReplaceString(playerClass, sizeof(playerClass), "models/player/", "");
-        ReplaceString(playerClass, sizeof(playerClass), ".mdl", "");
-        if (playerClass[0] == '\0')
-            return false;
 
         char mapName[96], mapDisplayName[64], mapSchema[PLATFORM_MAX_PATH];
         GetCurrentMap(mapName, sizeof(mapName));
@@ -663,21 +653,6 @@ methodmap TFPlayer < Entity
                             kv.GetString("name", item_class, sizeof(item_class));
                         }
                     }
-
-                    if (kv.GetDataType("bucket") != KvData_None)
-                    {
-                        bucket = kv.GetNum("bucket", -1);
-                    }
-                    else if (kv.GetDataType("item_slot") != KvData_None)
-                    {
-                        kv.GetString("item_slot", item_slot, sizeof(item_slot));
-                    }
-
-                    if (kv.JumpToKey("used_by_classes"))
-                    {
-                        classCompatible = kv.GetNum(playerClass) > 0;
-                    }
-
                     kv.Rewind();
                     found = true;
                 }
@@ -690,58 +665,23 @@ methodmap TFPlayer < Entity
             }
         }
 
-        if (bucket != -1)
+        for (int i = 0; i < sizeof(item_class) && item_class[i] != '\0'; i++)
         {
-            slot = bucket;
-        }
-        else if (item_slot[0] != '\0')
-        {
-            if (StrEqual(item_slot, "primary"))
-            {
-                slot = TFWeaponSlot_Primary;
-            }
-            else if (StrEqual(item_slot, "secondary"))
-            {
-                slot = TFWeaponSlot_Secondary;
-            }
-            else if (StrEqual(item_slot, "melee"))
-            {
-                slot = TFWeaponSlot_Melee;
-            }
-            else if (StrEqual(item_slot, "grenade"))
-            {
-                slot = TFWeaponSlot_Grenade;
-            }
-            else if (StrEqual(item_slot, "building"))
-            {
-                slot = TFWeaponSlot_Building;
-            }
-            else if (StrContains(item_slot, "pda") == 0)
-            {
-                slot = TFWeaponSlot_PDA;
-            }
-            else if (StrEqual(item_slot, "utility"))
-            {
-                slot = TFWeaponSlot_Item1;
-            }
-            else if (StrEqual(item_slot, "action"))
-            {
-                slot = TFWeaponSlot_Item2;
-            }
+            if (item_class[i] == '_')
+                continue;
+
+            item_class[i] = CharToLower(item_class[i]);
         }
 
-        // Prevent edict overflows
-        if (slot >= TFWeaponSlot_Primary && slot < 48)
+        // Cache current weapons to clean them up afterwards
+        ArrayList loadout = new ArrayList();
+        for (int i = 0; i < 48; i++)
         {
-            int removeSlot = slot;
-            if (bucket == -1 && (StrContains(item_class, "revolver") != -1 || StrContains(item_class, "tranq") != -1))
-            {
-                if (!classCompatible)
-                {
-                    removeSlot = TFWeaponSlot_Primary;
-                }
-            }
-            this.RemoveWeaponBySlot(removeSlot);
+            int weapon = GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", i);
+            if (weapon == -1 || !IsValidEntity(weapon))
+                continue;
+
+            loadout.Push(weapon);
         }
 
         int weapon = CreateEntityByName(item_class);
@@ -750,7 +690,7 @@ methodmap TFPlayer < Entity
             return false;
         }
         
-        char scriptFile[128];
+        char scriptFile[PLATFORM_MAX_PATH];
         Format(scriptFile, sizeof(scriptFile), "scripts/%s.txt", item_class);
         KeyValues kv = new KeyValues("WeaponData");
         if (kv.ImportFromFile(scriptFile))
@@ -810,38 +750,24 @@ methodmap TFPlayer < Entity
 
         EquipPlayerWeapon(this.index, weapon);
 
-        return true;
-    }
-
-    /**
-     * Removes a weapon from this player by slot.
-     *
-     * @param slot      Weapon slot to remove.
-     * @return          True if a weapon was removed, false otherwise.
-     */
-    public bool RemoveWeaponBySlot(int slot)
-    {
-        int weapon = GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", slot);
-        if (weapon == -1 || !IsValidEntity(weapon))
+        // Clean up excess entities
+        for (int i = 0; i < loadout.Length; i++)
         {
-            return false;
+            int oldWeapon = loadout.Get(i);
+
+            bool equipped = false;
+            for (int j = 0; j < 48 && !equipped; j++)
+            {
+                if (GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", j) == oldWeapon)
+                    equipped = true;
+            }
+
+            if (!equipped && IsValidEntity(oldWeapon))
+            {
+                RemoveEntity(oldWeapon);
+            }
         }
-
-        int wearable = GetEntPropEnt(weapon, Prop_Send, "m_hExtraWearable");
-        if (wearable != -1 && IsValidEntity(wearable))
-        {
-            RemoveEntity(wearable);
-        }
-
-        wearable = GetEntPropEnt(weapon, Prop_Send, "m_hExtraWearableViewModel");
-        if (wearable != -1 && IsValidEntity(wearable))
-        {
-            RemoveEntity(wearable);
-        }
-
-        RemovePlayerItem(this.index, weapon);
-        RemoveEntity(weapon);
-
+        delete loadout;
         return true;
     }
 
@@ -851,27 +777,31 @@ methodmap TFPlayer < Entity
      * @param defindex   Item definition index of the weapon to remove.
      * @return           True if a weapon was removed, false otherwise.
      */
-    public bool RemoveWeaponByDefIndex(int defindex)
+    public void RemoveWeapon(int defindex)
     {
-        int weapon;
-        for (int i = TFWeaponSlot_Primary; i < 48; i++)
+        for (int i = 0; i < 48; i++)
         {
-            weapon = GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", i);
+            int weapon = GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", i);
             if (weapon == -1 || !IsValidEntity(weapon))
-            {
                 continue;
-            }
 
             if (GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex") != defindex)
-            {
                 continue;
+
+            int extraWearable = GetEntPropEnt(weapon, Prop_Send, "m_hExtraWearable");
+            if (extraWearable != -1 && IsValidEntity(extraWearable))
+            {
+                RemoveEntity(extraWearable);
             }
 
-            this.RemoveWeaponBySlot(i);
-            return true;
-        }
+            extraWearable = GetEntPropEnt(weapon, Prop_Send, "m_hExtraWearableViewModel");
+            if (extraWearable != -1 && IsValidEntity(extraWearable))
+            {
+                RemoveEntity(extraWearable);
+            }
 
-        return false;
+            RemoveEntity(weapon);
+        }
     }
 
     /**
@@ -879,9 +809,25 @@ methodmap TFPlayer < Entity
      */
     public void RemoveAllWeapons()
     {
-        for (int i = TFWeaponSlot_Primary; i < 48; i++)
+        for (int i = 0; i < 48; i++)
         {
-            this.RemoveWeaponBySlot(i);
+            int weapon = GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", i);
+            if (weapon == -1 || !IsValidEntity(weapon))
+                continue;
+
+            int extraWearable = GetEntPropEnt(weapon, Prop_Send, "m_hExtraWearable");
+            if (extraWearable != -1 && IsValidEntity(extraWearable))
+            {
+                RemoveEntity(extraWearable);
+            }
+
+            extraWearable = GetEntPropEnt(weapon, Prop_Send, "m_hExtraWearableViewModel");
+            if (extraWearable != -1 && IsValidEntity(extraWearable))
+            {
+                RemoveEntity(extraWearable);
+            }
+
+            RemoveEntity(weapon);
         }
     }
 
@@ -902,9 +848,9 @@ methodmap TFPlayer < Entity
      * @param defindex  Item definition index to search for.
      * @return          Weapon slot index, or -1 if not found.
      */
-    public int GetWeaponByDefIndex(int defindex)
+    public int FindWeaponByDefIndex(int defindex)
     {
-        for (int i = TFWeaponSlot_Primary; i < 48; i++)
+        for (int i = 0; i < 48; i++)
         {
             int weapon = GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", i);
             if (weapon != -1 && GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex") == defindex)
@@ -913,72 +859,6 @@ methodmap TFPlayer < Entity
             }
         }
         return -1;
-    }
-}
-
-methodmap TFWeapon < Entity
-{
-    /**
-     * Gets the weapon's item definition index.
-     *
-     * @return Item definition index.
-     */
-    property int defindex
-    {
-        public get()
-        {
-            return GetEntProp(this.index, Prop_Send, "m_iItemDefinitionIndex");
-        }
-    }
-
-    /**
-     * Gets the weapon's "name" entry from the item definition index.
-     *
-     * @param buffer    Buffer to store the name.
-     * @param maxlen    Maximum length of the buffer.
-     */
-    public void GetName(char[] buffer, int maxlen)
-    {
-        char mapName[96], mapDisplayName[64], mapSchema[PLATFORM_MAX_PATH];
-        GetCurrentMap(mapName, sizeof(mapName));
-        GetMapDisplayName(mapName, mapDisplayName, sizeof(mapDisplayName));
-        Format(mapSchema, sizeof(mapSchema), "scripts/items/%s_items_game.txt", mapDisplayName);
-
-        char paths[4][PLATFORM_MAX_PATH];
-        for (int i = 0; i < sizeof(paths); i++)
-        {
-            switch (i)
-            {
-                // Shared
-                case 0: strcopy(paths[i], sizeof(paths[]), "scripts/items/items_game.txt");
-                // Fortress Connected
-                case 1: strcopy(paths[i], sizeof(paths[]), "scripts/items/items_custom.txt");
-                // Team Fortress 2 Classified
-                case 2: strcopy(paths[i], sizeof(paths[]), mapSchema);
-                case 3: strcopy(paths[i], sizeof(paths[]), "scripts/items/custom_items_game.txt");
-            }
-        }
-
-        char itemKey[16];
-        IntToString(this.defindex, itemKey, sizeof(itemKey));
-
-        KeyValues kv = new KeyValues("items_game");
-        for (int i = 0; i < sizeof(paths); i++)
-        {
-            if (!kv.ImportFromFile(paths[i]))
-                continue;
-
-            if (kv.JumpToKey("items") && kv.JumpToKey(itemKey))
-            {
-                if (kv.GetDataType("name") != KvData_None)
-                {
-                    kv.GetString("name", buffer, maxlen);
-                    delete kv;
-                    return;
-                }
-            }
-        }
-        delete kv;
     }
 }
 

@@ -386,14 +386,9 @@ stock int DisplayText(int entity, color[4] = {255, 255, 255, 255}, const char[] 
 stock void PrecacheFile(const char[] path)
 {
     int len = strlen(path);
-    bool isModelFile = StrEqual(path[len - 4], ".mdl") ||
-                       StrEqual(path[len - 4], ".vcd") ||
-                       StrEqual(path[len - 4], ".vvd") ||
-                       StrEqual(path[len - 4], ".phy") ||
-                       StrEqual(path[len - 4], ".vtx");
+    bool isModelFile = StrEqual(path[len - 4], ".mdl");
 
-    bool isDecalFile = StrEqual(path[len - 4], ".vmt") ||
-                       StrEqual(path[len - 4], ".vtf");
+    bool isDecalFile = StrEqual(path[len - 4], ".vtf");
 
     bool isSoundFile = StrEqual(path[len - 4], ".wav") ||
                        StrEqual(path[len - 4], ".mp3") ||
@@ -528,4 +523,73 @@ stock void GetPlayerName(int client, char[] name, int maxlen)
 	{
 		Format(name, maxlen, "\x03%N\x01", client);
 	}
+}
+
+/**
+ * Checks if an entity is stuck.
+ * 
+ * @param entity    Entity index.
+ * @return          True if the entity is stuck, false otherwise.
+ */
+stock bool IsEntityStuck(int entity)
+{
+	float origin[3], mins[3], maxs[3];
+	
+    GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
+	GetEntPropVector(entity, Prop_Send, "m_vecMins", mins);
+	GetEntPropVector(entity, Prop_Send, "m_vecMaxs", maxs);
+
+    TR_TraceHullFilter(origin, origin, mins, maxs, MASK_SOLID, TR_FilterSelf, entity);
+	return TR_DidHit();
+}
+
+static bool TR_FilterSelf(int entity, int contentsMask, int other)
+{
+	return entity != other;
+}
+
+/**
+ * Retrieves the owner of an entity.
+ * 
+ * @param entity    Entity index.
+ * @return          Owner entity index, or -1 if no owner.
+ */
+stock int GetEntityOwner(int entity)
+{
+    static const char sendProps[][32] =
+    {
+        "m_hOwnerEntity",
+        "m_hBuilder",
+        "m_hLauncher"
+    };
+
+    static const char dataProps[][32] =
+    {
+        "m_hOwner",
+        "m_hThrower"
+    };
+
+	int owner = -1;
+
+    for (int i = 0; i < sizeof(sendProps); i++)
+    {
+        if (HasEntProp(entity, Prop_Send, sendProps[i]))
+        {
+            owner = GetEntPropEnt(entity, Prop_Send, sendProps[i]);
+            if (owner != -1 && owner != entity)
+                return GetEntityOwner(owner);
+        }
+    }
+
+    for (int i = 0; i < sizeof(dataProps); i++)
+    {
+        if (HasEntProp(entity, Prop_Data, dataProps[i]))
+        {
+            owner = GetEntPropEnt(entity, Prop_Data, dataProps[i]);
+            if (owner != -1 && owner != entity)
+                return GetEntityOwner(owner);
+        }
+    }
+
+	return entity;
 }

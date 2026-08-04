@@ -3,12 +3,12 @@
 #include <multicolors>
 #include <regex>
 #include <entitylump>
-#include <ripext/json>
 
 #include <serider/shared>
 
 #undef REQUIRE_EXTENSIONS
 #include <serider/tf2>
+#include <ripext>
 #define REQUIRE_EXTENSIONS
 
 #include <serider/tf2classified>
@@ -49,7 +49,7 @@ public Plugin myinfo =
     name = "SM Utilities | Essentials",
     author = "Heapons",
     description = "Tools and utilities for Source games",
-    version = "26w31b",
+    version = "26w32a",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 

@@ -3,7 +3,6 @@
 #include <sdkhooks>
 #include <multicolors>
 #include <regex>
-#include <ripext/json>
 #include <keyvalues>
 
 #undef REQUIRE_PLUGIN
@@ -14,6 +13,7 @@
 
 #undef REQUIRE_EXTENSIONS
 #include <serider/tf2>
+#include <ripext/json>
 #include <navbot>
 #include <rcbot2>
 #define REQUIRE_EXTENSIONS
@@ -22,13 +22,27 @@
 
 enum
 {
+    // Plugins
 	trainingmsg,
+
+    // Extensions
     navbot,
 	rcbot2,
     ripext,
 
 	MAX_LIBRARIES
 }
+
+static const char libraries[][] =
+{
+    // Plugins
+    "trainingmsg",
+
+    // Extensions
+    "navbot.ext",
+    "rcbot2.ext",
+    "rip.ext"
+};
 
 bool g_Libraries[MAX_LIBRARIES];
 
@@ -81,7 +95,7 @@ public Plugin myinfo =
     name = "SM Utilities | Bots Fun",
     author = "Heapons",
     description = "An all-in-one bot manager",
-    version = "26w31b",
+    version = "26w32a",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 
@@ -243,11 +257,24 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnAllPluginsLoaded()
 {
     /* Variables */
-    g_Libraries[trainingmsg] = g_IsTF2SDK && LibraryExists("trainingmsg");
-    g_Libraries[navbot]      = LibraryExists("navbot");
-    g_Libraries[rcbot2]      = LibraryExists("RCBot2");
-    g_Libraries[ripext]      = LibraryExists("REST in Pawn");
-    
+    for (int i = 0; i < MAX_LIBRARIES; i++)
+    {
+        switch (i)
+        {
+            case trainingmsg:
+            {
+                g_Libraries[i] = g_IsTF2 && LibraryExists(libraries[i]);
+            }
+            default:
+            {
+                if (StrContains(libraries[i], ".ext") == (strlen(libraries[i]) - 4))
+                    g_Libraries[i] = GetExtensionFileStatus(libraries[i]) > 0;
+                else
+                    g_Libraries[i] = LibraryExists(libraries[i]);
+            }
+        }
+    }
+
     /* Target Filters */
     if (g_Libraries[rcbot2])
     {
