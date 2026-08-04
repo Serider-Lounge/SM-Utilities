@@ -263,7 +263,7 @@ public void OnAllPluginsLoaded()
         {
             case trainingmsg:
             {
-                g_Libraries[i] = g_IsTF2 && LibraryExists(libraries[i]);
+                g_Libraries[i] = g_IsTF2SDK && LibraryExists(libraries[i]);
             }
             default:
             {
