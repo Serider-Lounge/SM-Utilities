@@ -832,17 +832,6 @@ methodmap TFPlayer < Entity
     }
 
     /**
-     * Gets the weapon entity in a slot for this player.
-     *
-     * @param slot      Weapon slot.
-     * @return          Weapon entity index.
-     */
-    public int GetWeaponBySlot(int slot)
-    {
-        return GetEntPropEnt(this.index, Prop_Send, "m_hMyWeapons", slot);
-    }
-
-    /**
      * Searches the weapon entity in the player's m_hMyWeapons array.
      *
      * @param defindex  Item definition index to search for.

@@ -295,6 +295,19 @@ public void OnMapStart()
                 AddFileToDownloadsTable(path);
             }
         }
+
+        static const char paths[][PLATFORM_MAX_PATH] = 
+        {
+            "scripts/items/custom_level_sounds.txt",
+            "scripts/items/custom_particles.txt"
+        };
+        for (int i = 0; i < sizeof(paths); i++)
+        {
+            if (FileExists(paths[i]) && PrecacheGeneric(paths[i]))
+            {
+                AddFileToDownloadsTable(paths[i]);
+            }
+        }
     }
 }
 

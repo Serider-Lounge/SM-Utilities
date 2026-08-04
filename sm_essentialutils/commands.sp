@@ -435,7 +435,7 @@ public Action Command_AddAttribute(int client, int args)
 {
     if (args < 2)
     {
-        ReplyToCommand(client, PLUGIN_PREFIX ... " Usage: sm_addattr <target> <attribute> [value] [duration] [slot]");
+        ReplyToCommand(client, PLUGIN_PREFIX ... " Usage: sm_addattr <target> <attribute> [value] [duration]");
         return Plugin_Handled;
     }
 
@@ -443,7 +443,6 @@ public Action Command_AddAttribute(int client, int args)
     char attrName[64];
     char valueArg[32] = "1.0";
     char durationArg[32] = "-1.0";
-    char slotArg[16];
 
     GetCmdArg(1, targetArg, sizeof(targetArg));
     GetCmdArg(2, attrName, sizeof(attrName));
@@ -451,19 +450,9 @@ public Action Command_AddAttribute(int client, int args)
         GetCmdArg(3, valueArg, sizeof(valueArg));
     if (args >= 4)
         GetCmdArg(4, durationArg, sizeof(durationArg));
-    if (args >= 5)
-        GetCmdArg(5, slotArg, sizeof(slotArg));
 
     float value = StringToFloat(valueArg);
     float duration = StringToFloat(durationArg);
-
-    int slot = -1;
-    bool hasSlot = false;
-    if (slotArg[0] != '\0')
-    {
-        slot = StringToInt(slotArg);
-        hasSlot = true;
-    }
 
     int targets[MAXPLAYERS];
     int targetCount;
@@ -487,11 +476,6 @@ public Action Command_AddAttribute(int client, int args)
     for (int i = 0; i < targetCount; i++)
     {
         target = view_as<TFPlayer>(targets[i]);
-        if (hasSlot)
-        {
-            target.GetWeaponBySlot(slot);
-        }
-
         target.AddAttribute(attrName, value, duration);
     }
 
@@ -512,28 +496,15 @@ public Action Command_RemoveAttribute(int client, int args)
 {
     if (args < 2)
     {
-        ReplyToCommand(client, PLUGIN_PREFIX ... " Usage: sm_removeattr <target> <attribute> [slot]");
+        ReplyToCommand(client, PLUGIN_PREFIX ... " Usage: sm_removeattr <target> <attribute>");
         return Plugin_Handled;
     }
 
     char targetArg[64];
     char attrName[64];
-    char slotArg[16];
 
     GetCmdArg(1, targetArg, sizeof(targetArg));
     GetCmdArg(2, attrName, sizeof(attrName));
-    if (args >= 3)
-    {
-        GetCmdArg(3, slotArg, sizeof(slotArg));
-    }
-
-    int slot = -1;
-    bool hasSlot = false;
-    if (slotArg[0] != '\0')
-    {
-        slot = StringToInt(slotArg);
-        hasSlot = true;
-    }
 
     int targets[MAXPLAYERS];
     int targetCount;
@@ -552,11 +523,6 @@ public Action Command_RemoveAttribute(int client, int args)
     for (int i = 0; i < targetCount; i++)
     {
         target = TFPlayer(targets[i]);
-        if (hasSlot)
-        {
-            target.GetWeaponBySlot(slot);
-        }
-
         target.RemoveAttribute(attrName);
     }
 
@@ -1073,29 +1039,19 @@ public Action Command_RemoveWeapon(int client, int args)
 {
     if (args < 1)
     {
-        ReplyToCommand(client, PLUGIN_PREFIX ... " Usage: sm_removeweapon [target] [slot]");
+        ReplyToCommand(client, PLUGIN_PREFIX ... " Usage: sm_removeweapon [target]");
         return Plugin_Handled;
     }
 
     char targetArg[64];
-    char slotArg[16];
 
     if (args == 1)
     {
-        GetCmdArg(1, slotArg, sizeof(slotArg));
         strcopy(targetArg, sizeof(targetArg), "@me");
     }
     else
     {
         GetCmdArg(1, targetArg, sizeof(targetArg));
-        GetCmdArg(2, slotArg, sizeof(slotArg));
-    }
-
-    int slot = StringToInt(slotArg);
-    if (slot < 0 || slot > 48)
-    {
-        ReplyToCommand(client, PLUGIN_PREFIX ... " Invalid weapon slot specified.");
-        return Plugin_Handled;
     }
 
     int targets[MAXPLAYERS];
@@ -1117,20 +1073,15 @@ public Action Command_RemoveWeapon(int client, int args)
             continue;
 
         TFPlayer player = TFPlayer(targets[i]);
-        int weapon = player.GetWeaponBySlot(slot);
-        
-        if (weapon != -1 && IsValidEntity(weapon))
-        {
-            player.RemoveWeaponBySlot(slot);
-            removed++;
-        }
+        player.RemoveAllWeapons();
+        removed++;
     }
 
     switch (removed)
     {
         case 0:  CReplyToCommandEx(client, targets[0], PLUGIN_PREFIX ... " Failed to remove weapons for \x03%N", targets[0]);
-        case 1:  CReplyToCommandEx(client, targets[0], PLUGIN_PREFIX ... " Removed weapon in slot \x05%d\x01 from \x03%N", slot, targets[0]);
-        default: CReplyToCommand(client, PLUGIN_PREFIX ... " Removed weapon in slot \x05%d\x01 from \x04%d\x01 players", slot, removed);
+        case 1:  CReplyToCommandEx(client, targets[0], PLUGIN_PREFIX ... " Removed all weapons from \x03%N", targets[0]);
+        default: CReplyToCommand(client, PLUGIN_PREFIX ... " Removed all weapons from \x04%d\x01 players", removed);
     }
     
     return Plugin_Handled;

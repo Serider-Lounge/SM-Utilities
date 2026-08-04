@@ -525,6 +525,7 @@ stock void GetPlayerName(int client, char[] name, int maxlen)
 	}
 }
 
+#if defined _sdktools_included
 /**
  * Checks if an entity is stuck.
  * 
@@ -547,6 +548,7 @@ static bool TR_FilterSelf(int entity, int contentsMask, int other)
 {
 	return entity != other;
 }
+#endif
 
 /**
  * Retrieves the owner of an entity.
