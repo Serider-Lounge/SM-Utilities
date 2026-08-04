@@ -50,7 +50,9 @@ jobs:
           curl -sSL https://raw.githubusercontent.com/Bara/Multi-Colors/refs/heads/master/addons/sourcemod/scripting/include/multicolors/colors.inc -o include/multicolors/colors.inc
           curl -sSL https://raw.githubusercontent.com/Bara/Multi-Colors/refs/heads/master/addons/sourcemod/scripting/include/multicolors/morecolors.inc -o include/multicolors/morecolors.inc
           curl -sSL https://raw.githubusercontent.com/arthurdead/sm-plugins/refs/heads/master/addons/sourcemod/scripting/include/trainingmsg.inc -o include/trainingmsg.inc
-          curl -sSL https://github.com/srcdslab/sm-ext-ripext/raw/refs/heads/main/pawn/scripting/include/ripext/json.inc -o include/ripext/json.inc
+          curl -sSL https://raw.githubusercontent.com/ErikMinekus/sm-ripext/refs/heads/main/pawn/scripting/include/ripext.inc -o include/ripext.inc
+          curl -sSL https://raw.githubusercontent.com/ErikMinekus/sm-ripext/refs/heads/main/pawn/scripting/include/ripext/http.inc -o include/ripext/http.inc
+          curl -sSL https://raw.githubusercontent.com/ErikMinekus/sm-ripext/refs/heads/main/pawn/scripting/include/ripext/json.inc -o include/ripext/json.inc
           curl -sSL https://raw.githubusercontent.com/APGRoboCop/rcbot2/refs/heads/master/scripting/include/rcbot2.inc -o include/rcbot2.inc
           curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/navbot.inc -o include/navbot.inc
           curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/navbot/interfaces/base_interface.inc -o include/navbot/interfaces/base_interface.inc
