@@ -51,29 +51,28 @@ jobs:
           curl -sSL https://raw.githubusercontent.com/arthurdead/sm-plugins/refs/heads/master/addons/sourcemod/scripting/include/trainingmsg.inc -o include/trainingmsg.inc
           curl -sSL https://github.com/srcdslab/sm-ext-ripext/raw/refs/heads/main/pawn/scripting/include/ripext/json.inc -o include/ripext/json.inc
           curl -sSL https://raw.githubusercontent.com/APGRoboCop/rcbot2/refs/heads/master/scripting/include/rcbot2.inc -o include/rcbot2.inc
-          NAVBOT=https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include
-          curl -sSL $NAVBOT/navbot.inc -o include/navbot.inc
-          curl -sSL $NAVBOT/navbot/baseplayer.inc -o include/navbot/baseplayer.inc
-          curl -sSL $NAVBOT/navbot/bots.inc -o include/navbot/bots.inc
-          curl -sSL $NAVBOT/navbot/mod.inc -o include/navbot/mod.inc
-          curl -sSL $NAVBOT/navbot/nav.inc -o include/navbot/nav.inc
-          curl -sSL $NAVBOT/navbot/nav_area.inc -o include/navbot/nav_area.inc
-          curl -sSL $NAVBOT/navbot/nav_mesh.inc -o include/navbot/nav_mesh.inc
-          curl -sSL $NAVBOT/navbot/nav_blocker.inc -o include/navbot/nav_blocker.inc
-          curl -sSL $NAVBOT/navbot/nav_collector.inc -o include/navbot/nav_collector.inc
-          curl -sSL $NAVBOT/navbot/utils.inc -o include/navbot/utils.inc
-          curl -sSL $NAVBOT/navbot/interfaces/base_interface.inc -o include/navbot/interfaces/base_interface.inc
-          curl -sSL $NAVBOT/navbot/interfaces/behavior.inc -o include/navbot/interfaces/behavior.inc
-          curl -sSL $NAVBOT/navbot/interfaces/combat.inc -o include/navbot/interfaces/combat.inc
-          curl -sSL $NAVBOT/navbot/interfaces/inventory.inc -o include/navbot/interfaces/inventory.inc
-          curl -sSL $NAVBOT/navbot/interfaces/movement.inc -o include/navbot/interfaces/movement.inc
-          curl -sSL $NAVBOT/navbot/interfaces/sensor.inc -o include/navbot/interfaces/sensor.inc
-          curl -sSL $NAVBOT/navbot/interfaces/squad.inc -o include/navbot/interfaces/squad.inc
-          curl -sSL $NAVBOT/navbot/interfaces/playercontroller.inc -o include/navbot/interfaces/playercontroller.inc
-          curl -sSL $NAVBOT/navbot/interfaces/sharedbotmemory.inc -o include/navbot/interfaces/sharedbotmemory.inc
-          curl -sSL $NAVBOT/navbot/interfaces/dynamic_priority.inc -o include/navbot/interfaces/dynamic_priority.inc
-          curl -sSL $NAVBOT/navbot/interfaces/path.inc -o include/navbot/interfaces/path.inc
-          curl -sSL $NAVBOT/navbot/mods/zps.inc -o include/navbot/mods/zps.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/base_interface.inc -o include/navbot/interfaces/base_interface.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/behavior.inc -o include/navbot/interfaces/behavior.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/combat.inc -o include/navbot/interfaces/combat.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/dynamic_priority.inc -o include/navbot/interfaces/dynamic_priority.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/inventory.inc -o include/navbot/interfaces/inventory.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/movement.inc -o include/navbot/interfaces/movement.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/path.inc -o include/navbot/interfaces/path.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/playercontroller.inc -o include/navbot/interfaces/playercontroller.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/sensor.inc -o include/navbot/interfaces/sensor.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/sharedbotmemory.inc -o include/navbot/interfaces/sharedbotmemory.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/squad.inc -o include/navbot/interfaces/squad.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/mods/modhelpers.inc -o include/navbot/mods/modhelpers.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/mods/zps.inc -o include/navbot/mods/zps.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/baseplayer.inc -o include/navbot/baseplayer.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/bots.inc -o include/navbot/bots.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/mod.inc -o include/navbot/mod.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/nav_area.inc -o include/navbot/nav_area.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/nav_blocker.inc -o include/navbot/nav_blocker.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/nav_collector.inc -o include/navbot/nav_collector.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/nav_mesh.inc -o include/navbot/nav_mesh.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/nav.inc -o include/navbot/nav.inc
+          curl -sSL https://raw.githubusercontent.com/caxanga334/NavBot/refs/heads/main/scripting/include/utils.inc -o include/navbot/utils.inc
 
       - name: Compile plugins
         run: |
