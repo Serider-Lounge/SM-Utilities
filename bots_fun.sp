@@ -87,8 +87,8 @@ Handle g_hQuotaTimer;
 char g_GameDir[32];
 bool g_IsDedicatedServer;
 bool g_IsServerHibernating;
-int g_TeamCount;
 bool g_IsTF2SDK;
+int g_TeamCount;
 
 public Plugin myinfo = 
 {
