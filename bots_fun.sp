@@ -4,19 +4,18 @@
 #include <multicolors>
 #include <regex>
 #include <keyvalues>
+#include <navmesh>
+
+#include <smutils/clients>
 
 #undef REQUIRE_PLUGIN
 #include <trainingmsg>
-#define REQUIRE_PLUGIN
-
-#include <serider/shared>
 
 #undef REQUIRE_EXTENSIONS
-#include <serider/tf2>
+#include <smutils/tf2>
 #include <ripext/json>
 #include <navbot>
 #include <rcbot2>
-#define REQUIRE_EXTENSIONS
 
 #define PLUGIN_PREFIX "[\x03Bots Fun\x01]"
 
@@ -50,9 +49,12 @@ enum
 {
     // Plugin
     plugin_bot_autoteambalance,
+    plugin_bot_names,
     plugin_bot_quota_interval,
     plugin_bot_quota_mode,
+    plugin_bot_quota_mvm,
     plugin_bot_quota,
+    plugin_bot_type_random,
     plugin_bot_type,
     plugin_humans_only,
     plugin_nav_generate_auto,
@@ -60,10 +62,15 @@ enum
     // NavBot
     sm_navbot_tf_teammates_are_enemies,
 
+    // Rafmod
+    sig_etc_allow_civilian_class,
+
     // Built-In
     bot_difficulty,
     bot_quota,
+    hostname,
     mp_friendlyfire,
+    mp_teams_unbalance_limit,
     tf_bot_reevaluate_class_in_spawnroom,
     tf_mvm_defenders_team_size,
     tf_mvm_max_invaders,
@@ -83,11 +90,25 @@ enum
     BOT_TYPE_COUNT
 }
 
-Handle g_hQuotaTimer;
-char g_GameDir[32];
+char g_BotTypes[][] =
+{
+    "valve",
+    "navbot",
+    "rcbot2"
+};
+
 bool g_IsDedicatedServer;
+bool g_IsMVM;
+bool g_IsNavGenerating;
+bool g_IsReverseMVM;
 bool g_IsServerHibernating;
 bool g_IsTF2SDK;
+char g_GameDir[32];
+Handle g_hQuotaTimer;
+JSONObject g_BotConfig;
+ArrayList g_PlayerClasses;
+int g_BotTypeCount;
+int g_BotTypeOrder[BOT_TYPE_COUNT];
 int g_TeamCount;
 
 public Plugin myinfo = 
@@ -104,6 +125,11 @@ public void OnPluginStart()
 {
     /* Variables */
     GetGameFolderName(g_GameDir, sizeof(g_GameDir));
+
+    char path[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, path, sizeof(path), "configs/sm_utilities/bots_fun.json");
+    if (FileExists(path))
+        g_BotConfig = JSONObject.FromFile(path);
     
     g_IsDedicatedServer = IsDedicatedServer();
     g_IsServerHibernating = false;
@@ -127,52 +153,90 @@ public void OnPluginStart()
 		delete kv;
 	}
 
+    if (g_IsTF2SDK)
+    {
+        g_PlayerClasses = new ArrayList();
+        DirectoryListing dir = OpenDirectory("scripts/playerclasses", true);
+        if (dir != null)
+        {
+            char fileName[64];
+            FileType type;
+            while (dir.GetNext(fileName, sizeof(fileName), type))
+            {
+                if (type == FileType_Directory)
+                    continue;
+
+                int dot = FindCharInString(fileName, '.');
+                if (dot != -1)
+                    fileName[dot] = '\0';
+
+                g_PlayerClasses.PushString(fileName);
+            }
+            delete dir;
+        }
+    }
+
     /* ConVars */
     g_ConVars[plugin_bot_autoteambalance] = CreateConVar(
         "sm_bot_autoteambalance",
         "1",
-        "Whether bots are affected by auto-balance.", _, true, 0.0, true, 1.0);
+        "Whether bots are affected by auto-balance.",
+        _, true, 0.0, true, 1.0);
     
     g_ConVars[plugin_bot_quota_interval] = CreateConVar(
         "sm_bot_quota_interval",
         "1.0",
-        "The interval at which to maintain the bot quota.", _, true, 0.0);
-    g_ConVars[plugin_bot_quota_interval].AddChangeHook(OnConVarChanged);
-    
+        "The interval at which to maintain the bot quota.",
+        _, true, 0.0);
+
+    g_ConVars[plugin_bot_names] = CreateConVar(
+        "sm_bot_names",
+        "2",
+        "Whether to use custom bot names.\nAllowed values: '0', '1', '2'.\nIf '0', no custom names are used.\nIf '1', only 'default' names are used.\nIf '2', rename bots based on their models.",
+        _, true, 0.0, true, 2.0);
+
     g_ConVars[plugin_bot_quota_mode] = CreateConVar(
         "sm_bot_quota_mode",
-        "fill",
-        "Determines the type of quota.\nAllowed values: 'fill', 'balance'.\nIf 'fill', the server will adjust bots to keep sm_bot_quota total players in the game.\nIf 'balance', the server will adjust bots to keep teams balanced at bare minimum.");
-    g_ConVars[plugin_bot_quota_mode].AddChangeHook(OnConVarChanged);
-    
+        "balance",
+        "Determines the type of quota.\nAllowed values: 'fill', 'layer', 'balance'.\nIf 'fill', the server will adjust bots to keep sm_bot_quota total players in the game.\nIf 'layer', the server will adjust bots to keep teams balanced at bare minimum.\nIf 'balance', the server will adjust bots to keep teams balanced and force players to replace remaining bots.");
+
     g_ConVars[plugin_bot_quota] = CreateConVar(
         "sm_bot_quota",
         "12",
-        "Determines the total number of bots in the game.", _, true, 0.0, true, float(MAXPLAYERS));
-    g_ConVars[plugin_bot_quota].AddChangeHook(OnConVarChanged);
+        "Determines the total number of bots in the game.",
+        _, true, 0.0, true, float(MAXPLAYERS));
     
     g_ConVars[plugin_bot_type] = CreateConVar(
         "sm_bot_type",
-        "valve",
-        "The type of bot to spawn.\nAllowed values: 'valve', 'random', 'rcbot2', 'navbot'.");
-    g_ConVars[plugin_bot_type].AddChangeHook(OnConVarChanged);
+        "navbot,rcbot2,valve",
+        "The type of bot to spawn.\nAllowed values: 'valve', 'rcbot2', 'navbot'.\nIf bot types are sequenced (separated by commas), the priority order will be read from left to right.");
     
+    g_ConVars[plugin_bot_type_random] = CreateConVar(
+        "sm_bot_type_random",
+        "0",
+        "Whether to randomly select a bot type from sm_bot_type.\nIf a bot type is blacklisted, it won't be accounted for.",
+        _, true, 0.0, true, 1.0);
+
     if (g_IsTF2SDK)
     {
         g_ConVars[plugin_humans_only] = CreateConVar(
             "sm_bot_humans_only",
             "1",
-            "Whether to pre-maturely end the round when all humans are dead in Arena Mode or Sudden Death mode.", _, true, 0.0, true, 1.0);
+            "Whether to pre-maturely end the round when all humans are dead in Arena Mode or Sudden Death mode.",
+            _, true, 0.0, true, 1.0);
+
+        g_ConVars[plugin_bot_quota_mvm] = CreateConVar(
+            "sm_bot_quota_mvm",
+            "1",
+            "Whether to manage the bot quota in Mann Vs. Machine.",
+            _, true, 0.0, true, 1.0);
     }
     
-    if (CommandExists("nav_generate"))
-    {
-        g_ConVars[plugin_nav_generate_auto] = CreateConVar(
-            "nav_generate_auto",
-            "0",
-            "Whether to automatically generate navmeshes for the current map if none exist. Only triggers when the server is empty.", _, true, 0.0, true, 1.0);
-        g_ConVars[plugin_nav_generate_auto].AddChangeHook(OnConVarChanged);
-    }
+    g_ConVars[plugin_nav_generate_auto] = CreateConVar(
+        "sm_nav_generate_auto",
+        "0",
+        "Whether to automatically generate navmeshes for the current map if none exist. Only triggers when the server is empty.",
+        _, true, 0.0, true, 1.0);
 
     AutoExecConfig(true, "bots_fun");
 
@@ -181,7 +245,7 @@ public void OnPluginStart()
         g_ConVars[bot_difficulty] = FindConVar("tf_bot_difficulty");
         g_ConVars[bot_quota]      = FindConVar("tf_bot_quota");
     }
-    else if (StrEqual(g_GameDir, "hl2mp"))
+    else if (strcmp(g_GameDir, "hl2mp") == 0)
     {
         g_ConVars[bot_difficulty] = FindConVar("hl2mp_bot_difficulty");
         g_ConVars[bot_quota]      = FindConVar("hl2mp_bot_quota");
@@ -191,20 +255,26 @@ public void OnPluginStart()
         g_ConVars[bot_difficulty] = FindConVar("bot_difficulty");
         g_ConVars[bot_quota]      = FindConVar("bot_quota");
     }
+    g_ConVars[bot_quota].SetInt(0);
     
-    g_ConVars[mp_friendlyfire] = FindConVar("mp_friendlyfire");
-    g_ConVars[mp_friendlyfire].AddChangeHook(OnConVarChanged);
+    g_ConVars[mp_friendlyfire]          = FindConVar("mp_friendlyfire");
+    g_ConVars[mp_teams_unbalance_limit] = FindConVar("mp_teams_unbalance_limit");
+    g_ConVars[hostname]                 = FindConVar("hostname");
     
     g_ConVars[sm_navbot_tf_teammates_are_enemies] = FindConVar("sm_navbot_tf_teammates_are_enemies");
     
-    g_ConVars[tf_bot_reevaluate_class_in_spawnroom] = FindConVar("tf_bot_reevaluate_class_in_spawnroom");
-    g_ConVars[tf_mvm_defenders_team_size] = FindConVar("tf_mvm_defenders_team_size");
-    g_ConVars[tf_mvm_defenders_team_size].AddChangeHook(OnConVarChanged);
-    g_ConVars[tf_mvm_max_invaders] = FindConVar("tf_mvm_max_invaders");
-    
-    g_ConVars[tf2c_allow_special_classes] = FindConVar("tf2c_allow_special_classes");
+    if (g_IsTF2SDK)
+    {
+        g_ConVars[tf_bot_reevaluate_class_in_spawnroom] = FindConVar("tf_bot_reevaluate_class_in_spawnroom");
+        g_ConVars[tf_mvm_defenders_team_size]           = FindConVar("tf_mvm_defenders_team_size");
+        g_ConVars[tf_mvm_max_invaders]                  = FindConVar("tf_mvm_max_invaders");
+        g_ConVars[tf2c_allow_special_classes]           = FindConVar("tf2c_allow_special_classes");
+        g_ConVars[sig_etc_allow_civilian_class]         = FindConVar("sig_etc_allow_civilian_class");
+    }
 
     /* Commands */
+    AddCommandListener(Command_JoinTeam, "jointeam");
+
     RegAdminCmd("sm_puppet_add", Command_PuppetAdd, ADMFLAG_CHEATS, "Add a puppet bot.");
 
 	RegServerCmd("nav_generate", Command_NavGenerate);
@@ -237,20 +307,30 @@ public void OnPluginStart()
     }
     HookEvent("player_spawn", Event_PlayerSpawn);
     HookEvent("player_death", Event_PlayerDeath);
-    HookEvent("player_team", Event_PlayerTeam);
-    HookEvent("player_disconnect", Event_PlayerDisconnect);
+    HookEvent("player_team", Event_PlayerTeam, EventHookMode_Pre);
+    HookEvent("player_connect", Event_PlayerConnect, EventHookMode_Pre);
+    HookEvent("player_disconnect", Event_PlayerDisconnect, EventHookMode_Pre);
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-    // trainingmsg
-    MarkNativeAsOptional("SendTrainingMessageToAll");
+    static const char natives[][] =
+    {
+        // trainingmsg
+        "SendTrainingMessageToAll",
 
-    // Rest In Pawn
-    MarkNativeAsOptional("JSONObject.FromFile");
-    MarkNativeAsOptional("JSONObject.HasKey");
-    MarkNativeAsOptional("JSONObject.Get");
-    MarkNativeAsOptional("JSONObject.GetString");
+        // Rest In Pawn
+        "JSONObject.FromFile",
+        "JSONObject.HasKey",
+        "JSONObject.Get",
+        "JSONObject.GetString"
+    };
+
+    for (int i = 0; i < sizeof(natives); i++)
+    {
+        MarkNativeAsOptional(natives[i]);
+    }
+
     return APLRes_Success;
 }
 
@@ -267,11 +347,20 @@ public void OnAllPluginsLoaded()
             }
             default:
             {
-                if (StrContains(libraries[i], ".ext") == (strlen(libraries[i]) - 4))
+                if (strncmp(libraries[i][strlen(libraries[i]) - 4], ".ext", 4) == 0)
                     g_Libraries[i] = GetExtensionFileStatus(libraries[i]) > 0;
                 else
                     g_Libraries[i] = LibraryExists(libraries[i]);
             }
+        }
+    }
+
+    /* ConVars */
+    for (int i = 0; i < MAX_CONVARS; i++)
+    {
+        if (g_ConVars[i] != null)
+        {
+            g_ConVars[i].AddChangeHook(OnConVarChanged);
         }
     }
 
@@ -287,27 +376,33 @@ public void OnAllPluginsLoaded()
 
 public void OnLibraryAdded(const char[] name)
 {
-    if (g_IsTF2SDK && StrEqual(name, "trainingmsg"))
+    if (g_IsTF2SDK)
     {
-        g_Libraries[trainingmsg] = true;
+        if (strcmp(name, "trainingmsg") == 0)
+        {
+            g_Libraries[trainingmsg] = true;
+        }
     }
 }
 
 public void OnLibraryRemoved(const char[] name)
 {
-    if (g_IsTF2SDK && StrEqual(name, "trainingmsg"))
+    if (g_IsTF2SDK)
     {
-        g_Libraries[trainingmsg] = false;
+        if (strcmp(name, "trainingmsg") == 0)
+        {
+            g_Libraries[trainingmsg] = false;
+        }
     }
-    else if (StrEqual(name, "navbot"))
+    else if (strcmp(name, "navbot") == 0)
     {
         g_Libraries[navbot] = false;
     }
-    else if (StrEqual(name, "RCBot2"))
+    else if (strcmp(name, "RCBot2") == 0)
     {
         g_Libraries[rcbot2] = false;
     }
-    else if (StrEqual(name, "REST in Pawn"))
+    else if (strcmp(name, "REST in Pawn") == 0)
     {
         g_Libraries[ripext] = false;
     }
@@ -316,14 +411,39 @@ public void OnLibraryRemoved(const char[] name)
 public void OnMapStart()
 {
     /* Variables */
-    g_TeamCount = GetTeamCount();
-}
+    if (g_TeamCount == 0)
+    {
+        g_TeamCount = GetTeamCount();
+    }
+    g_IsNavGenerating = false;
 
-public void OnConfigsExecuted()
-{    
     /* Functions */
     NavGenerate();
     MaintainBotQuota();
+}
+
+public void OnMapEnd()
+{
+    g_hQuotaTimer = null;
+}
+
+public void OnConfigsExecuted()
+{
+    /* Variables */
+    g_IsMVM = FindEntityByClassname(-1, "tf_logic_mann_vs_machine") != -1;
+    if (g_IsMVM)
+    {
+        char popfile[PLATFORM_MAX_PATH];
+        if (TF2_GetPopFileName(popfile, sizeof(popfile)) != 0)
+        {
+            KeyValues kv = new KeyValues("WaveSchedule");
+            if (kv.ImportFromFile(popfile) && kv.JumpToKey("WaveSchedule"))
+            {
+                g_IsReverseMVM = view_as<bool>(kv.GetNum("ReverseWinConditions"));
+            }
+            delete kv;
+        }
+    }
 
     /* RCBot2 */
     char mapName[96], mapDisplayName[64], mapPath[PLATFORM_MAX_PATH];
@@ -331,22 +451,26 @@ public void OnConfigsExecuted()
     GetCurrentMap(mapName, sizeof(mapName));
     GetMapDisplayName(mapName, mapDisplayName, sizeof(mapDisplayName));
     
-    Format(mapPath, sizeof(mapPath), "addons/rcbot2/waypoints/%s/%s.rcw", g_GameDir, mapDisplayName);
-
-    char botType[32];
-    g_ConVars[plugin_bot_type].GetString(botType, sizeof(botType));
+    FormatEx(mapPath, sizeof(mapPath), "addons/rcbot2/waypoints/%s/%s.rcw", g_GameDir, mapDisplayName);
 
     // https://github.com/APGRoboCop/rcbot2/issues/49
-    if (g_Libraries[rcbot2] && (StrEqual(botType, "rcbot2") || StrEqual(botType, "random")) &&
+    if (g_Libraries[rcbot2] && IsBotTypeEnabled(BOT_TYPE_RCBOT2) &&
         !RCBot2_IsWaypointAvailable() && FileExists(mapPath))
     {
         ServerCommand("rcbot%s waypoint load %s", g_IsDedicatedServer ? "d" : "", mapDisplayName);
     }
+
+    /* Functions */
+    UpdateBotTypes();
 }
 
 public void OnServerEnterHibernation()
 {
     g_IsServerHibernating = true;
+    if (g_ConVars[plugin_nav_generate_auto].BoolValue && !g_IsNavGenerating && !NavMesh_Exists())
+    {
+        ServerCommand("nav_generate");
+    }
 }
 
 public void OnServerExitHibernation()

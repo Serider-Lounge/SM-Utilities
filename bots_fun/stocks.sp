@@ -6,8 +6,9 @@
 stock bool TF2_IsPermaDeathMode()
 {
     return g_ConVars[plugin_humans_only].BoolValue &&
-           (FindEntityByClassname(-1, "tf_logic_arena") != -1 ||
-            GameRules_GetProp("m_iRoundState") == 7);
+           (GameRules_GetProp("m_iRoundState") == 7 ||
+           GameRules_GetProp("m_nGameType") == TF_GAMETYPE_ARENA ||
+           view_as<bool>(GameRules_GetProp("m_bPlayingArena")));
 }
 
 /**
@@ -15,102 +16,151 @@ stock bool TF2_IsPermaDeathMode()
  */
 stock void MaintainBotQuota()
 {
-    if (FindEntityByClassname(-1, "tf_logic_mann_vs_machine") != -1)
-        return;
-
-    if (g_hQuotaTimer != null)
-        return;
-
-    g_hQuotaTimer = CreateTimer(g_ConVars[plugin_bot_quota_interval].FloatValue, Timer_MaintainBotQuota, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+    if (g_hQuotaTimer == null && !g_IsNavGenerating)
+    {
+        g_hQuotaTimer = CreateTimer(g_ConVars[plugin_bot_quota_interval].FloatValue, Timer_MaintainBotQuota, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+    }
 }
 
 /**
- * Gets the spawn type of a bot based on the bot type string.
- * 
- * @param botType  The bot type string.
- * @return         The spawn type of the bot, or -1 otherwise.
+ * Refreshes the bot type order from per-map restrictions or 'sm_bot_type'.
  */
-stock int GetBotSpawnType(const char[] botType)
+stock void UpdateBotTypes()
 {
-    if (StrEqual(botType, "valve", false))
+    g_BotTypeCount = 0;
+
+    char types[BOT_TYPE_COUNT][16];
+    int count = JSON_GetMapBotTypes(types, BOT_TYPE_COUNT);
+    if (count < 0)
     {
-        if (NavMesh.IsLoaded())
-            return BOT_TYPE_VALVE;
+        char value[128];
+        g_ConVars[plugin_bot_type].GetString(value, sizeof(value));
+        count = ExplodeString(value, ",", types, BOT_TYPE_COUNT, sizeof(types[]));
     }
-    else if (StrEqual(botType, "navbot", false))
+
+    for (int i = 0; i < count; i++)
     {
-        if (g_Libraries[navbot] && NavBotNavMesh.IsLoaded())
-            return BOT_TYPE_NAVBOT;
+        TrimString(types[i]);
+
+        int botType = -1;
+        for (int j = 0; j < BOT_TYPE_COUNT; j++)
+            if (strcmp(types[i], g_BotTypes[j], false) == 0)
+            {
+                botType = j;
+                break;
+            }
+
+        if (botType != -1)
+            g_BotTypeOrder[g_BotTypeCount++] = botType;
     }
-    else if (StrEqual(botType, "rcbot2", false))
+}
+
+/**
+ * Whether the bot type is currently available to spawn.
+ * 
+ * @param botType  The bot type to check.
+ * @return         True if the bot type is available, false otherwise.
+ */
+stock bool IsBotTypeAvailable(int botType)
+{
+    switch (botType)
     {
-        if (g_Libraries[rcbot2] && RCBot2_IsWaypointAvailable())
-            return BOT_TYPE_RCBOT2;
+        case BOT_TYPE_VALVE: 
+            return NavMesh_Exists() && view_as<bool>(GameRules_GetProp("m_bPlayingMannVsMachine"));
+        case BOT_TYPE_NAVBOT:
+            return g_Libraries[navbot] && NavBotNavMesh.IsLoaded();
+        case BOT_TYPE_RCBOT2:
+            return g_Libraries[rcbot2] && RCBot2_IsWaypointAvailable();
     }
-    else if (StrEqual(botType, "random", false))
+    return false;
+}
+
+/**
+ * Gets the bot spawn type.
+ * 
+ * @return  The first available bot type in the order, or -1 if none are available.
+ */
+stock int GetBotSpawnType()
+{
+    if (g_BotTypeCount == 0)
+        return -1;
+
+    if (g_ConVars[plugin_bot_type_random].BoolValue)
     {
-        return BOT_TYPE_COUNT;
+        for (int i = g_BotTypeCount - 1; i > 0; i--)
+        {
+            int j = GetRandomInt(0, i);
+            int temp = g_BotTypeOrder[i];
+            g_BotTypeOrder[i] = g_BotTypeOrder[j];
+            g_BotTypeOrder[j] = temp;
+        }
     }
+
+    for (int i = 0; i < g_BotTypeCount; i++)
+        if (IsBotTypeAvailable(g_BotTypeOrder[i]))
+            return g_BotTypeOrder[i];
+
     return -1;
+}
+
+/**
+ * Whether the bot type is enabled.
+ * 
+ * @param botType  The bot type to check.
+ * @return         True if the bot type is enabled, false otherwise.
+ */
+stock bool IsBotTypeEnabled(int botType)
+{
+    for (int i = 0; i < g_BotTypeCount; i++)
+    {
+        if (g_BotTypeOrder[i] == botType)
+            return true;
+    }
+    return false;
 }
 
 /**
  * Adds a bot to the server based on the specified bot type.
  * 
- * @param botType  The bot type to add, or BOT_TYPE_COUNT to add a random bot type.
+ * @param botType  The bot type to add.
  * @return         True if the bot was added successfully, false otherwise.
  */
-stock bool AddBot(int botType = BOT_TYPE_COUNT)
+stock bool AddBot(int botType)
 {
+    if (!IsBotTypeAvailable(botType))
+        return false;
+
     switch (botType)
     {
-        case BOT_TYPE_COUNT:
-        {
-            return AddBot(GetRandomInt(0, BOT_TYPE_COUNT - 1));
-        }
         case BOT_TYPE_VALVE:
         {
-            if (NavMesh.IsLoaded())
+            if (NavMesh_Exists())
             {
                 // Team Fortress 2
                 if (g_IsTF2SDK)
                 {
                     char class[32];
-                    static const char playerClasses[][] = {"scout", "soldier", "pyro", "demoman", "heavyweapons", "engineer", "medic", "sniper", "spy"};
-                    strcopy(class, sizeof(class), playerClasses[GetRandomInt(0, sizeof(playerClasses) - 1)]);
-
                     if (!g_ConVars[tf_bot_reevaluate_class_in_spawnroom].BoolValue)
                     {
-                        int random = GetRandomInt(1, 10);
-                        switch (random)
+                        g_PlayerClasses.GetString(GetRandomInt(0, g_PlayerClasses.Length - 1), class, sizeof(class));
+                    }
+
+                    bool isCivilianAllowed = g_ConVars[tf2c_allow_special_classes].BoolValue || g_ConVars[sig_etc_allow_civilian_class].BoolValue;
+                    if (!isCivilianAllowed && strcmp(class, "civilian") == 0)
+                    {
+                        if (g_PlayerClasses.Length > 1)
                         {
-                            case 10:
+                            do
                             {
-                                // Team Fortress 2 Classified
-                                if (StrEqual(g_GameDir, "tf2classified"))
-                                {
-                                    if (g_ConVars[tf2c_allow_special_classes].BoolValue)
-                                    {
-                                        strcopy(class, sizeof(class), "civilian");
-                                    }
-                                }
-                                // Fortress Connected
-                                else if (StrEqual(g_GameDir, "fc_sdk"))
-                                {
-                                    strcopy(class, sizeof(class), "john");
-                                }
-                                // Fortress-Life
-                                else if (StrEqual(g_GameDir, "fl2"))
-                                {
-                                    strcopy(class, sizeof(class), "gordonfreeman");
-                                }
-                            }
+                                g_PlayerClasses.GetString(GetRandomInt(0, g_PlayerClasses.Length - 1), class, sizeof(class));
+                            } while (strcmp(class, "civilian", false) == 0);
                         }
                     }
                     return TF2_SpawnBot(_, _, class, g_ConVars[bot_difficulty].IntValue) != -1;
                 }
                 return SpawnBot(_, _, g_ConVars[bot_difficulty].IntValue) != -1;
             }
+            return false;
         }
         case BOT_TYPE_NAVBOT:
         {
@@ -136,9 +186,16 @@ stock bool AddBot(int botType = BOT_TYPE_COUNT)
  */
 stock void NavGenerate()
 {
-    if (g_ConVars[plugin_nav_generate_auto].BoolValue && g_IsServerHibernating)
+    if (g_ConVars[plugin_nav_generate_auto] != null &&
+        g_ConVars[plugin_nav_generate_auto].BoolValue && g_IsServerHibernating)
     {
-        if (!NavMesh.IsLoaded())
+        if (!NavMesh_Exists())
+        {
             ServerCommand("nav_generate");
+        }
+        else if (g_Libraries[navbot] && !NavBotNavMesh.IsLoaded())
+        {
+            NavBotNavMesh.Generate();
+        }
     }
 }

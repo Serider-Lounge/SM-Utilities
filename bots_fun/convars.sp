@@ -1,19 +1,36 @@
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-    char convarName[64];
-    convar.GetName(convarName, sizeof(convarName));
-    if (StrEqual(convarName, "nav_generate_auto"))
+    for (int i = 0; i < MAX_CONVARS; i++)
     {
-        NavGenerate();
-    }
-    else if (StrEqual(convarName, "mp_friendlyfire"))
-    {
-        g_ConVars[sm_navbot_tf_teammates_are_enemies].SetBool(convar.BoolValue);
-    }
-    else if (StrContains(convarName, "tf_mvm") == 0 ||
-             StrContains(convarName, "sm_bots_fun_quota") == 0 ||
-             StrEqual(convarName, "sm_bots_fun_type"))
-    {
-        MaintainBotQuota();
+        if (g_ConVars[i] == convar)
+        {
+            switch (i)
+            {
+                case plugin_nav_generate_auto:
+                {
+                    NavGenerate();
+                }
+                case mp_friendlyfire:
+                {
+                    g_ConVars[sm_navbot_tf_teammates_are_enemies].SetBool(convar.BoolValue);
+                }
+                case plugin_bot_type:
+                {
+                    UpdateBotTypes();
+                    MaintainBotQuota();
+                }
+                case plugin_bot_quota,
+                     plugin_bot_quota_mode,
+                     plugin_bot_quota_interval,
+                     plugin_bot_quota_mvm,
+                     plugin_bot_type_random,
+                     tf_mvm_defenders_team_size,
+                     tf_mvm_max_invaders:
+                {
+                    MaintainBotQuota();
+                }
+            }
+            break;
+        }
     }
 }

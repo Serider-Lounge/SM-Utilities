@@ -1,7 +1,19 @@
 public Action Timer_MaintainBotQuota(Handle timer)
 {
+    if (g_IsNavGenerating || (g_IsMVM && !g_ConVars[plugin_bot_quota_mvm].BoolValue))
+    {
+        g_hQuotaTimer = null;
+        return Plugin_Stop;
+    }
+
+    int invadersTeam = g_IsReverseMVM ? 2 : 3;
+
+    // Quota Manager
     char mode[32];
     g_ConVars[plugin_bot_quota_mode].GetString(mode, sizeof(mode));
+
+    bool[] managed = new bool[MaxClients + 1];
+    int[] managedBots = new int[MaxClients + 1];
 
     int humans = 0;
     int bots = 0;
@@ -10,34 +22,58 @@ public Action Timer_MaintainBotQuota(Handle timer)
     {
         if (!IsClientInGame(i) || IsClientSourceTV(i) || IsClientReplay(i))
             continue;
-        
+
         if (GetClientTeam(i) <= 1)
             continue;
-        
+
+        if (g_IsMVM && GetClientTeam(i) == invadersTeam)
+            continue;
+
+        managed[i] = true;
+
         if (IsFakeClient(i))
+        {
+            managedBots[bots] = i;
             bots++;
+        }
         else
+        {
             humans++;
+        }
     }
 
     int desiredBotCount = g_ConVars[plugin_bot_quota].IntValue - humans;
+    if (g_IsMVM)
+    {
+        desiredBotCount = g_ConVars[tf_mvm_defenders_team_size].IntValue - humans - 1;
+        if (desiredBotCount < 0)
+            desiredBotCount = 0;
+    }
+
+    int spawnType = GetBotSpawnType();
 
     // fill
-    if (StrEqual(mode, "fill"))
+    if (strcmp(mode, "fill") == 0 || (g_IsMVM && mode[0] != '\0'))
     {
+        if (bots == desiredBotCount)
+        {
+            g_hQuotaTimer = null;
+            return Plugin_Stop;
+        }
+
         if (bots < desiredBotCount)
         {
-            char botType[32];
-            g_ConVars[plugin_bot_type].GetString(botType, sizeof(botType));
-            int spawnType = GetBotSpawnType(botType);
-            if (spawnType != -1)
+            if (spawnType == -1)
             {
-                int needed = desiredBotCount - bots;
-                for (int k = 0; k < needed; k++)
-                    AddBot(spawnType);
+                g_hQuotaTimer = null;
+                return Plugin_Stop;
             }
+
+            // Keep the timer running so bots are added one at a time until the quota is met.
+            AddBot(spawnType);
+            return Plugin_Continue;
         }
-        else if (bots > desiredBotCount)
+        else
         {
             int excess = bots - desiredBotCount;
             int kicked = 0;
@@ -45,55 +81,69 @@ public Action Timer_MaintainBotQuota(Handle timer)
             // Kick: Dead teammates
             for (int j = 1; j <= MaxClients && kicked < excess; j++)
             {
-                if (!IsClientInGame(j) || IsFakeClient(j))
+                if (!managed[j] || IsFakeClient(j))
                     continue;
-                int team = GetClientTeam(j);
-                for (int i = 1; i <= MaxClients && kicked < excess; i++)
+
+                for (int b = 0; b < bots && kicked < excess; b++)
                 {
-                    if (!IsClientInGame(i) || !IsFakeClient(i) || IsPlayerAlive(i) || GetClientTeam(i) != team)
+                    int i = managedBots[b];
+                    if (i == 0 || !IsPlayerAlive(i) || GetClientTeam(i) != GetClientTeam(j))
                         continue;
                     KickClient(i);
+                    managedBots[b] = 0;
                     kicked++;
                 }
             }
 
             // Kick: Any dead bots
-            for (int i = 1; i <= MaxClients && kicked < excess; i++)
+            for (int b = 0; b < bots && kicked < excess; b++)
             {
-                if (!IsClientInGame(i) || !IsFakeClient(i) || IsPlayerAlive(i))
+                int i = managedBots[b];
+                if (i == 0 || IsPlayerAlive(i))
                     continue;
                 KickClient(i);
+                managedBots[b] = 0;
                 kicked++;
             }
 
             // Kick: Alive teammates
             for (int j = 1; j <= MaxClients && kicked < excess; j++)
             {
-                if (!IsClientInGame(j) || IsFakeClient(j))
+                if (!managed[j] || IsFakeClient(j))
                     continue;
-                int team = GetClientTeam(j);
-                for (int i = 1; i <= MaxClients && kicked < excess; i++)
+
+                for (int b = 0; b < bots && kicked < excess; b++)
                 {
-                    if (!IsClientInGame(i) || !IsFakeClient(i) || !IsPlayerAlive(i) || GetClientTeam(i) != team)
+                    int i = managedBots[b];
+                    if (i == 0 || IsPlayerAlive(i) || GetClientTeam(i) != GetClientTeam(j))
                         continue;
                     KickClient(i);
+                    managedBots[b] = 0;
                     kicked++;
                 }
             }
 
             // Kick: Any bots
-            for (int i = 1; i <= MaxClients && kicked < excess; i++)
+            for (int b = 0; b < bots && kicked < excess; b++)
             {
-                if (!IsClientInGame(i) || !IsFakeClient(i))
+                int i = managedBots[b];
+                if (i == 0)
                     continue;
                 KickClient(i);
+                managedBots[b] = 0;
                 kicked++;
             }
         }
     }
-    // balance
-    else if (StrEqual(mode, "balance"))
+    // balance, layer
+    else if (!g_IsMVM && (strcmp(mode, "balance") == 0 || strcmp(mode, "layer") == 0))
     {
+        if (g_ConVars[mp_teams_unbalance_limit].IntValue <= 0)
+        {
+            g_hQuotaTimer = null;
+            return Plugin_Stop;
+        }
+
         int activeTeams[MAXPLAYERS + 1];
         int activeTeamCount = 0;
         for (int i = 2; i < g_TeamCount; i++)
@@ -104,84 +154,83 @@ public Action Timer_MaintainBotQuota(Handle timer)
         int botsPerTeam[MAXPLAYERS + 1];
         for (int i = 1; i <= MaxClients; i++)
         {
-            if (!IsClientInGame(i) || IsClientSourceTV(i) || IsClientReplay(i))
-                continue;
-            int team = GetClientTeam(i);
-            if (team <= 1)
+            if (!managed[i])
                 continue;
             if (IsFakeClient(i))
-                botsPerTeam[team]++;
+                botsPerTeam[GetClientTeam(i)]++;
             else
-                humansPerTeam[team]++;
+                humansPerTeam[GetClientTeam(i)]++;
         }
 
-        int minHumans = MaxClients + 1;
         int maxHumans = 0;
         for (int i = 0; i < activeTeamCount; i++)
         {
-            int team = activeTeams[i];
-            if (humansPerTeam[team] < minHumans)
-                minHumans = humansPerTeam[team];
-            if (humansPerTeam[team] > maxHumans)
-                maxHumans = humansPerTeam[team];
+            int t = activeTeams[i];
+            if (humansPerTeam[t] > maxHumans)
+                maxHumans = humansPerTeam[t];
         }
-        int target = (minHumans == maxHumans) ? maxHumans : (minHumans + 1);
+
+        int desired = maxHumans;
 
         // Remove excess bots
         for (int i = 0; i < activeTeamCount; i++)
         {
-            int team = activeTeams[i];
-            int currentTotal = humansPerTeam[team] + botsPerTeam[team];
-            if (currentTotal > target)
+            int t = activeTeams[i];
+            int currentTotal = humansPerTeam[t] + botsPerTeam[t];
+            if (currentTotal <= desired)
+                continue;
+
+            int excess = currentTotal - desired;
+            int kicked = 0;
+
+            // Kick: Any dead bots
+            for (int b = 0; b < bots && kicked < excess; b++)
             {
-                int excess = currentTotal - target;
-                int kicked = 0;
+                int j = managedBots[b];
+                if (j == 0 || GetClientTeam(j) != t || IsPlayerAlive(j))
+                    continue;
+                KickClient(j);
+                managedBots[b] = 0;
+                kicked++;
+            }
 
-                // Kick: Any dead bots
-                for (int j = 1; j <= MaxClients && kicked < excess; j++)
-                {
-                    if (!IsClientInGame(j) || GetClientTeam(j) != team || !IsFakeClient(j) || IsPlayerAlive(j))
-                        continue;
-                    KickClient(j);
-                    kicked++;
-                }
-
-                // Kick: Any alive bots
-                for (int j = 1; j <= MaxClients && kicked < excess; j++)
-                {
-                    if (!IsClientInGame(j) || GetClientTeam(j) != team || !IsFakeClient(j) || !IsPlayerAlive(j))
-                        continue;
-                    KickClient(j);
-                    kicked++;
-                }
+            // Kick: Any bots
+            for (int b = 0; b < bots && kicked < excess; b++)
+            {
+                int j = managedBots[b];
+                if (j == 0 || GetClientTeam(j) != t)
+                    continue;
+                KickClient(j);
+                managedBots[b] = 0;
+                kicked++;
             }
         }
 
         // Fill gaps with bots
         for (int i = 0; i < activeTeamCount; i++)
         {
-            int team = activeTeams[i];
-            int currentTotal = humansPerTeam[team] + botsPerTeam[team];
-            if (currentTotal < target)
+            int t = activeTeams[i];
+            int currentTotal = humansPerTeam[t] + botsPerTeam[t];
+            if (currentTotal < desired)
             {
-                int needed = target - currentTotal;
-                char botType[32];
-                g_ConVars[plugin_bot_type].GetString(botType, sizeof(botType));
-                int spawnType = GetBotSpawnType(botType);
-                if (spawnType != -1)
+                if (spawnType != -1 && !AddBot(spawnType))
                 {
-                    for (int k = 0; k < needed; k++)
-                        AddBot(spawnType);
+                    g_hQuotaTimer = CreateTimer(g_ConVars[plugin_bot_quota_interval].FloatValue, Timer_MaintainBotQuota, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+                    return Plugin_Stop;
                 }
+                
+                break;
             }
         }
     }
-    return Plugin_Continue;
+    g_hQuotaTimer = null;
+    return Plugin_Stop;
 }
 
-public void Timer_SetNameFromModel(Handle timer, int client)
+public void Timer_SetBotName(Handle timer, int userid)
 {
-    if (!IsClientConnected(client) || IsClientSourceTV(client) || IsClientReplay(client))
+    int client = GetClientOfUserId(userid);
+    if (client == 0 || !IsClientConnected(client) || IsClientSourceTV(client) || IsClientReplay(client))
         return;
 
     char path[PLATFORM_MAX_PATH], name[PLATFORM_MAX_PATH];
