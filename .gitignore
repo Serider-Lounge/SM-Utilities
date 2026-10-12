@@ -1,5 +1,6 @@
 *.inc
-!include/serider/*
+!include/smutils/*
+!tf2itemschema*
 
 *.smx
 *.log
