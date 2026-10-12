@@ -1,0 +1,1 @@
+const TFClassType TFClass_Citizen = view_as<TFClassType>(10);
