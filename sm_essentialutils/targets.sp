@@ -2,18 +2,14 @@
 public bool TargetFilter_Team(const char[] pattern, ArrayList clients, int client)
 {
     char teamPattern[32];
-    for (int i = 0; i < sizeof(teamPattern) - 1 && pattern[i + 1] != '\0'; i++)
-    {
-        teamPattern[i] = pattern[i + 1];
-    }
-    teamPattern[sizeof(teamPattern) - 1] = '\0';
+    strcopy(teamPattern, sizeof(teamPattern), pattern[1]);
 
     int team = FindTeamByName(teamPattern);
 
     char teamName[32];
     GetTeamName(team, teamName, sizeof(teamName));
 
-    if (!StrEqual(teamPattern, teamName, false))
+    if (strcmp(teamPattern, teamName, false) != 0)
     {
         return true;
     }

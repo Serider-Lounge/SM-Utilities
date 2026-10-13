@@ -82,12 +82,12 @@ stock void ShowCreditsContributorMenu(int client, const char[] contributor)
 
         char name[256];
         entry.GetString("name", name, sizeof(name));
-        if (StrEqual(name, contributor))
+        if (strcmp(name, contributor) == 0)
         {
             found = true;
             
             char url[256];
-            entry.GetString("url", url, sizeof(url))
+            entry.GetString("url", url, sizeof(url));
             if (url[0] != '\0')
             {
                 if (StrContains(url, "steamcommunity.com") != -1)
@@ -150,7 +150,7 @@ stock void ShowCreditsContributionsMenu(int client)
 
         char name[256];
         entry.GetString("name", name, sizeof(name));
-        if (StrEqual(name, g_CreditsSelection[client]))
+        if (strcmp(name, g_CreditsSelection[client]) == 0)
         {
             found = true;
             
@@ -173,7 +173,7 @@ stock void ShowCreditsContributionsMenu(int client)
                     contrib.GetString("url", contribUrl, sizeof(contribUrl));
 
                     char itemInfo[32];
-                    Format(itemInfo, sizeof(itemInfo), "contrib:%d", j);
+                    FormatEx(itemInfo, sizeof(itemInfo), "contrib:%d", j);
 
                     if (contribUrl[0] != '\0')
                     {
@@ -199,94 +199,4 @@ stock void ShowCreditsContributionsMenu(int client)
     }
 
     menu.Display(client, MENU_TIME_FOREVER);
-}
-
-// Downloads
-stock void ProcessDownloadsConfig()
-{
-    char path[PLATFORM_MAX_PATH];
-    BuildPath(Path_SM, path, sizeof(path), "configs/sm_utilities/downloads.json");
-    
-    if (!FileExists(path))
-    {
-        PrintToServer(PLUGIN_PREFIX ... " 'downloads.json' not found.");
-        return;
-    }
-    
-    JSONObject json = JSONObject.FromFile(path);
-    if (json == null)
-    {
-        PrintToServer(PLUGIN_PREFIX ... " Failed to parse 'downloads.json'.");
-        return;
-    }
-    
-    JSONObject maps = view_as<JSONObject>(json.Get("maps"));
-    if (maps != null)
-    {
-        char mapName[96], mapDisplayName[64];
-        GetCurrentMap(mapName, sizeof(mapName));
-        GetMapDisplayName(mapName, mapDisplayName, sizeof(mapDisplayName));
-        
-        JSONObjectKeys iter = maps.Keys();
-        char mapPattern[PLATFORM_MAX_PATH];
-        while (iter.ReadKey(mapPattern, sizeof(mapPattern)))
-        {
-            Regex regex = new Regex(mapPattern);
-            if (regex != null && regex.Match(mapDisplayName) > 0)
-            {
-                JSONObject mapFiles = view_as<JSONObject>(maps.Get(mapPattern));
-                if (mapFiles != null)
-                {
-                    JSONArray array = view_as<JSONArray>(mapFiles);
-                    for (int i = 0; i < array.Length; i++)
-                    {
-                        if (array.GetType(i) == JSON_STRING)
-                        {
-                            char filePath[PLATFORM_MAX_PATH];
-                            array.GetString(i, filePath, sizeof(filePath));
-                            if (filePath[0] != '\0')
-                            {
-                                Regex fileRegex = new Regex(filePath);
-                                if (fileRegex != null)
-                                {
-                                    if (FileExists(filePath))
-                                    {
-                                        AddFileToDownloadsTable(filePath);
-                                    }
-                                    else
-                                    {
-                                        char basePath[PLATFORM_MAX_PATH];
-                                        strcopy(basePath, FindCharInString(filePath, '/', true) + 2, filePath);
-                                        DirectoryListing dir = OpenDirectory(basePath, true);
-                                        if (dir != null)
-                                        {
-                                            char fileName[PLATFORM_MAX_PATH];
-                                            FileType fileType;
-                                            while (dir.GetNext(fileName, sizeof(fileName), fileType))
-                                            {
-                                                if (fileType == FileType_File)
-                                                {
-                                                    char fullPath[PLATFORM_MAX_PATH];
-                                                    Format(fullPath, sizeof(fullPath), "%s%s", basePath, fileName);
-                                                    if (fileRegex.Match(fullPath) > 0)
-                                                    {
-                                                        AddFileToDownloadsTable(fullPath);
-                                                    }
-                                                }
-                                            }
-                                            delete dir;
-                                        }
-                                    }
-                                    delete fileRegex;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            delete regex;
-        }
-        delete iter;
-    }
-    delete json;
 }

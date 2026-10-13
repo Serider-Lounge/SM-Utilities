@@ -31,13 +31,13 @@ public int MenuHandler_CreditsContributor(Menu menu, MenuAction action, int para
         char itemInfo[32];
         menu.GetItem(param2, itemInfo, sizeof(itemInfo));
 
-        if (StrEqual(itemInfo, "contributions"))
+        if (strcmp(itemInfo, "contributions") == 0)
         {
             ShowCreditsContributionsMenu(client);
             return 0;
         }
 
-        if (!StrEqual(itemInfo, "steam"))
+        if (strcmp(itemInfo, "steam") != 0)
         {
             return 0;
         }
@@ -65,7 +65,7 @@ public int MenuHandler_CreditsContributor(Menu menu, MenuAction action, int para
 
                 char name[256];
                 entry.GetString("name", name, sizeof(name));
-                if (StrEqual(name, g_CreditsSelection[client]))
+                if (strcmp(name, g_CreditsSelection[client]) == 0)
                 {
                     entry.GetString("url", url, sizeof(url));
                     break;
@@ -102,14 +102,14 @@ public int MenuHandler_CreditsContributions(Menu menu, MenuAction action, int pa
         char itemInfo[32];
         menu.GetItem(param2, itemInfo, sizeof(itemInfo));
 
-        if (StrContains(itemInfo, "contrib:", false) != 0)
+        if (strncmp(itemInfo, "contrib:", 8) != 0)
         {
             return 0;
         }
 
         // Extract contribution index
         char indexStr[16];
-        strcopy(indexStr, sizeof(indexStr), itemInfo[7]);
+        strcopy(indexStr, sizeof(indexStr), itemInfo[8]);
         int contribIndex = StringToInt(indexStr);
 
         char path[PLATFORM_MAX_PATH];
@@ -135,7 +135,7 @@ public int MenuHandler_CreditsContributions(Menu menu, MenuAction action, int pa
 
                 char name[256];
                 entry.GetString("name", name, sizeof(name));
-                if (StrEqual(name, g_CreditsSelection[client]))
+                if (strcmp(name, g_CreditsSelection[client]) == 0)
                 {
                     JSONArray contributions = view_as<JSONArray>(entry.Get("contributions"));
                     if (contributions != null && contribIndex < contributions.Length)

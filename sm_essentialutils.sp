@@ -4,16 +4,35 @@
 #include <regex>
 #include <entitylump>
 
-#include <serider/shared>
+#include <smutils/clients>
 
 #undef REQUIRE_EXTENSIONS
-#include <serider/tf2>
+#include <smutils/tf2>
 #include <ripext>
 #define REQUIRE_EXTENSIONS
 
-#include <serider/tf2classified>
+#include <smutils/tf2classified>
+
+#undef REQUIRE_PLUGIN
+#include <tf2itemschema>
 
 #define PLUGIN_PREFIX "[\x03SM Utilities\x01]"
+
+enum
+{
+    // Plugins
+    tf2itemschema,
+
+    MAX_LIBRARIES
+}
+
+static const char libraries[][] =
+{
+    // Plugins
+    "tf2itemschema"
+};
+
+bool g_Libraries[MAX_LIBRARIES];
 
 enum
 {
@@ -40,8 +59,12 @@ ConVar g_ConVars[MAX_CONVARS];
 char g_CreditsSelection[MAXPLAYERS + 1][256];
 char g_GameDir[64];
 
+bool g_KillFeedOnlySelf[MAXPLAYERS + 1];
+
+ArrayList g_ItemsSchema;
+
 // TF2
-bool g_TF2SDK = false;
+bool g_TF2SDK;
 bool g_ThirdPerson[MAXPLAYERS + 1];
 
 public Plugin myinfo = 
@@ -55,25 +78,33 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
+    /* Translations */
+    LoadTranslations("common.phrases");
+
     /* Variables */
     GetGameFolderName(g_GameDir, sizeof(g_GameDir));
 
-	if (GetEngineVersion() == Engine_SDK2013 && FileExists("resource/tf.ttf"))
-	{
-		g_TF2SDK = true;
-	}
-	else
-	{
-		KeyValues kv = new KeyValues("GameInfo");
-		if (kv.ImportFromFile("gameinfo.txt") && kv.GetNum("DependsOnAppID") == 440)
-		{
-			g_TF2SDK = true;
-		}
-		delete kv;
-	}
+    EngineVersion engine = GetEngineVersion();
+    g_TF2SDK = (engine == Engine_TF2);
+    if (!g_TF2SDK)
+    {
+	    if (engine == Engine_SDK2013 && FileExists("resource/tf.ttf"))
+	    {
+	    	g_TF2SDK = true;
+	    }
+	    else
+	    {
+	    	KeyValues kv = new KeyValues("GameInfo");
+	    	if (kv.ImportFromFile("gameinfo.txt"))
+	    	{
+	    		g_TF2SDK = kv.GetNum("DependsOnAppID") == 440;
+	    	}
+	    	delete kv;
+	    }
+    }
 
     /* ConVars */
-    if (StrEqual(g_GameDir, "tf2classified"))
+    if (strcmp(g_GameDir, "tf2classified") == 0)
     {
         g_ConVars[convert_vscript_vip] = CreateConVar("sm_convert_vscript_vip", "1", "Convert VScript VIP to TF2C VIP.", _, true, 0.0, true, 1.0);
         AddMultiTargetFilter("@vips", TargetFilter_VIPs, "VIPs", false);
@@ -103,10 +134,13 @@ public void OnPluginStart()
 
     /* Events */
     HookEvent("player_spawn", Event_PlayerSpawn);
+    HookEvent("player_death", Event_PlayerDeath, EventHookMode_Pre);
     if (HookEventEx("teamplay_round_start", Event_TeamplayRoundStart))
     {
+        HookEvent("teamplay_round_active", Event_TeamplayRoundStart);
         HookEvent("teamplay_setup_finished", Event_TeamplaySetupFinished);
     }
+    HookEvent("player_disconnect", Event_PlayerDisconnect);
 
     /* Commands */
     // @admins
@@ -127,6 +161,10 @@ public void OnPluginStart()
     RegAdminCmd("sm_health", Command_Health, ADMFLAG_GENERIC);
     RegAdminCmd("sm_maxhealth", Command_MaxHealth, ADMFLAG_GENERIC);
 
+    RegAdminCmd("sm_armor", Command_Armor, ADMFLAG_GENERIC);
+    RegAdminCmd("sm_giveammo", Command_GiveAmmo, ADMFLAG_GENERIC); // sm_giveammo <target> <ammo_type> <amount>
+    RegAdminCmd("sm_giveclip", Command_GiveClip, ADMFLAG_GENERIC);
+
     RegAdminCmd("sm_scale", Command_Scale, ADMFLAG_GENERIC);
 
     if (FindSendPropInfo("CTFPlayer", "m_nCurrency") > 0)
@@ -137,12 +175,31 @@ public void OnPluginStart()
 
     if (FindSendPropInfo("CTFPlayer", "m_AttributeList") > 0)
     {
-        RegAdminCmd("sm_addattr",         Command_AddAttribute, ADMFLAG_GENERIC);
-        RegAdminCmd("sm_addattribute",    Command_AddAttribute, ADMFLAG_GENERIC);
-        RegAdminCmd("sm_removeattr",      Command_RemoveAttribute, ADMFLAG_GENERIC);
-        RegAdminCmd("sm_removeattribute", Command_RemoveAttribute, ADMFLAG_GENERIC);
-        RegAdminCmd("sm_getattr",         Command_GetAttribute, ADMFLAG_GENERIC);
-        RegAdminCmd("sm_getattribute",    Command_GetAttribute, ADMFLAG_GENERIC);
+        static const char cmdPrefixes[][] =
+        {
+            "add",
+            "remove",
+            "get"
+        };
+        static const char cmdSuffixes[][] =
+        {
+            "attr",
+            "attribute"
+        };
+        char cmd[64];
+        for (int i = 0; i < sizeof(cmdPrefixes); i++)
+        {
+            for (int j = 0; j < sizeof(cmdSuffixes); j++)
+            {
+                FormatEx(cmd, sizeof(cmd), "sm_%s%s", cmdPrefixes[i], cmdSuffixes[j]);
+                switch (i)
+                {
+                    case 0: RegAdminCmd(cmd, Command_AddAttribute, ADMFLAG_GENERIC);
+                    case 1: RegAdminCmd(cmd, Command_RemoveAttribute, ADMFLAG_GENERIC);
+                    case 2: RegAdminCmd(cmd, Command_GetAttribute, ADMFLAG_GENERIC);
+                }
+            }
+        }
     }
 
 	Event instructor = CreateEvent("instructor_server_hint_create", true);
@@ -161,6 +218,7 @@ public void OnPluginStart()
     RegAdminCmd("sm_giveweapon",   Command_GiveWeapon, ADMFLAG_GENERIC);
     RegAdminCmd("sm_removeweapon", Command_RemoveWeapon, ADMFLAG_GENERIC);
     RegAdminCmd("sm_stripweapons", Command_StripWeapons, ADMFLAG_GENERIC);
+    RegAdminCmd("sm_getweapons",   Command_GetWeapons, ADMFLAG_GENERIC);
 
     // @everyone
     if (g_TF2SDK)
@@ -171,6 +229,7 @@ public void OnPluginStart()
         RegConsoleCmd("sm_thirdperson", Command_ThirdPerson);
     }
     RegConsoleCmd("sm_credits", Command_Credits);
+    RegConsoleCmd("sm_killfeed", Command_KillFeedShowSelfOnly);
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -185,6 +244,34 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
     MarkNativeAsOptional("JSONArray.GetString");
     MarkNativeAsOptional("JSONArray.Length.get");
     return APLRes_Success;
+}
+
+public void OnAllPluginsLoaded()
+{
+    /* Variables */
+    for (int i = 0; i < MAX_LIBRARIES; i++)
+    {
+        if (strncmp(libraries[i][strlen(libraries[i]) - 4], ".ext", 4) == 0)
+            g_Libraries[i] = GetExtensionFileStatus(libraries[i]) > 0;
+        else
+            g_Libraries[i] = LibraryExists(libraries[i]);
+    }
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+    if (strcmp(name, "tf2itemschema") == 0)
+    {
+        g_Libraries[tf2itemschema] = true;
+    }
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+    if (strcmp(name, "tf2itemschema") == 0)
+    {
+        g_Libraries[tf2itemschema] = false;
+    }
 }
 
 // ConVars
@@ -215,9 +302,11 @@ public void OnMapInit()
     int lumpLength = EntityLump.Length();
     EntityLumpEntry entry;
     char classname[64];
+    int pos;
 
     // VIP VScript
-    if (g_ConVars[convert_vscript_vip] != null && g_ConVars[convert_vscript_vip].BoolValue)
+    if (g_ConVars[convert_vscript_vip] != null &&
+        g_ConVars[convert_vscript_vip].BoolValue)
     {
         lumpLength = EntityLump.Length();
         bool isVScriptVIP = false;
@@ -225,17 +314,17 @@ public void OnMapInit()
         for (int i = lumpLength - 1; i >= 0; i--)
         {
             entry = EntityLump.Get(i);
-            if (entry.GetNextKey("classname", classname, sizeof(classname), -1) != -1 && StrEqual(classname, "logic_script", false))
+            if (entry.GetNextKey("classname", classname, sizeof(classname), -1) != -1 && strcmp(classname, "logic_script", false) == 0)
             {
                 if (entry.GetNextKey("vscripts", buffer, sizeof(buffer), -1) != -1 && StrContains(buffer, "vip.nut", false) != -1)
                 {
                     isVScriptVIP = true;
                     EntityLump.Erase(i);
-                    CloseHandle(entry);
+                    delete entry;
                     continue;
                 }
             }
-            int pos = -1;
+            pos = -1;
             while ((pos = entry.GetNextKey("OnMapSpawn", buffer, sizeof(buffer), pos)) != -1)
             {
                 if (StrContains(buffer, "cane", false) != -1)
@@ -244,7 +333,7 @@ public void OnMapInit()
                     break;
                 }
             }
-            CloseHandle(entry);
+            delete entry;
         }
         if (isVScriptVIP)
         {
@@ -255,19 +344,22 @@ public void OnMapInit()
             entry.Append("show_escort_progress", "1");
             entry.Append("hud_type", "1");
             entry.Append("vehicle_type", "2");
-            CloseHandle(entry);
+            delete entry;
         }
     }
 }
 
 public void OnMapStart()
 {    
-    /* Configs */
-    ProcessDownloadsConfig();
-    
     /* Target Filters */
     char teamName[32], targetFilter[64];
-    int teamCount = GetTeamCount();
+
+    static int teamCount;
+    if (teamCount == 0)
+    {
+        teamCount = GetTeamCount();
+    }
+
     for (int i = 0; i < teamCount; i++)
     {
         GetTeamName(i, teamName, sizeof(teamName));
@@ -275,39 +367,6 @@ public void OnMapStart()
         targetFilter[0] = CharToLower(targetFilter[0]);
         Format(targetFilter, sizeof(targetFilter), "@%s", targetFilter);
         AddMultiTargetFilter(targetFilter, TargetFilter_Team, teamName, false);
-    }
-
-    /* Items Schema */
-    if (StrEqual(g_GameDir, "tf2classified"))
-    {
-        char path[PLATFORM_MAX_PATH] = "scripts/items/custom_items_game.txt";
-        if (FileExists(path))
-        {
-            if (PrecacheGeneric(path))
-            {
-                AddFileToDownloadsTable(path);
-            }
-            char mapName[64];
-            GetCurrentMap(mapName, sizeof(mapName));
-            Format(path, sizeof(path), "scripts/items/%s_items_game.txt", mapName);
-            if (FileExists(path) && PrecacheGeneric(path))
-            {
-                AddFileToDownloadsTable(path);
-            }
-        }
-
-        static const char paths[][PLATFORM_MAX_PATH] = 
-        {
-            "scripts/items/custom_level_sounds.txt",
-            "scripts/items/custom_particles.txt"
-        };
-        for (int i = 0; i < sizeof(paths); i++)
-        {
-            if (FileExists(paths[i]) && PrecacheGeneric(paths[i]))
-            {
-                AddFileToDownloadsTable(paths[i]);
-            }
-        }
     }
 }
 
