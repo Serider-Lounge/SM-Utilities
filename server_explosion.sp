@@ -24,7 +24,7 @@ public Plugin myinfo =
     name = "Imminent Server Explosion",
     author = "Breadd~, Heapons",
     description = "Flashes screen, plays alarm, triggers explosion, then executes a command.",
-    version = "26w31a",
+    version = "26w42a",
     url = "https://github.com/Serider-Lounge/SM-Utilities"
 };
 
@@ -229,7 +229,7 @@ void FinalExplosionSequence()
     }
 
     // Create a timer to execute the command after the sound plays
-    CreateTimer(g_fExplosionDuration, Timer_ExecuteCommand);
+    CreateTimer(g_fExplosionDuration, Timer_ExecuteCommand, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 // Red Flashes + Klaxon
@@ -237,15 +237,16 @@ void PerformWarningEffect()
 {
     // Initial text params
     SetHudTextParams(-1.0, -1.0, 0.5, 255, 255, 255, 255, 2, 0.0, 0.0, 0.0);
+    PrecacheSound(g_sSoundAlarm, true);
+
+    char textDisplay[256];
     for (int i = 1; i <= MaxClients; i++)
     {
         if (IsClientInGame(i) && !IsFakeClient(i))
         {
-            PrecacheSound(g_sSoundAlarm, true);
             EmitSoundToClient(i, g_sSoundAlarm);
 
-            char textDisplay[256];
-            Format(textDisplay, sizeof(textDisplay), "%T", g_sTextDisplay, i);
+            FormatEx(textDisplay, sizeof(textDisplay), "%T", g_sTextDisplay, i);
             ShowHudText(i, -1, textDisplay);
 
             // Colored Flash

@@ -1,11 +1,10 @@
 #include <sourcemod>
 #include <multicolors>
 
-#include <serider/shared>
+#include <smutils/clients>
 
 #undef REQUIRE_EXTENSIONS
-#include <serider/tf2>
-#define REQUIRE_EXTENSIONS
+#include <smutils/tf2>
 
 #define PLUGIN_PREFIX "[\x03SM Utilities\x01]"
 
@@ -26,7 +25,7 @@ public Plugin myinfo =
     name = "SM Utilities | Player Utilities",
     author = "Heapons",
     description = "Tools and utilities for managing players",
-    version = "26w31a",
+    version = "26w42a",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 

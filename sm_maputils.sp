@@ -15,13 +15,14 @@ enum
 }
 
 bool g_Libraries[MAX_LIBRARIES];
+ConVar g_cvHostname;
 
 public Plugin myinfo = 
 {
     name = "SM Utilities | Maps Utilities",
     author = "Heapons",
     description = "Tools and utilities for managing maps",
-    version = "26w31a",
+    version = "26w42a",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 
@@ -35,6 +36,8 @@ public void OnPluginStart()
 {
     LoadTranslations("common.phrases");
 
+    g_cvHostname = FindConVar("hostname");
+
     RegAdminCmd("sm_reloadmap", Command_ReloadMap, ADMFLAG_CHANGEMAP, "Reloads the current map.");
 }
 
@@ -45,7 +48,7 @@ public void OnAllPluginsLoaded()
 
 public void OnLibraryAdded(const char[] name)
 {
-    if (StrEqual(name, "trainingmsg"))
+    if (strcmp(name, "trainingmsg") == 0)
     {
         g_Libraries[trainingmsg] = true;
     }
@@ -53,7 +56,7 @@ public void OnLibraryAdded(const char[] name)
 
 public void OnLibraryRemoved(const char[] name)
 {
-    if (StrEqual(name, "trainingmsg"))
+    if (strcmp(name, "trainingmsg") == 0)
     {
         g_Libraries[trainingmsg] = false;
     }
@@ -75,7 +78,7 @@ public Action Command_ReloadMap(int client, int args)
 	{
         event.SetString("hint_replace_key", "sm_reloadmap");
         char caption[64];
-        Format(caption, sizeof(caption), "%t", "Changing map", displayName);
+        FormatEx(caption, sizeof(caption), "%t", "Changing map", displayName);
         event.SetString("hint_caption", caption);
         event.SetString("hint_icon_onscreen", "icon_tip");
         event.SetString("hint_icon_offscreen", "icon_tip");
@@ -86,10 +89,10 @@ public Action Command_ReloadMap(int client, int args)
 	else if (g_Libraries[trainingmsg])
 	{
 		char hostname[256];
-		GetConVarString(FindConVar("hostname"), hostname, sizeof(hostname));
+		GetConVarString(g_cvHostname, hostname, sizeof(hostname));
 
 		char trainingMessage[128];
-		Format(trainingMessage, sizeof(trainingMessage), "%t", "Changing map", displayName);
+		FormatEx(trainingMessage, sizeof(trainingMessage), "%t", "Changing map", displayName);
 		Format(displayName, sizeof(displayName), "{gold}%s{default}", displayName);
 
 		SendTrainingMessageToAll(hostname, trainingMessage, TMSG_NOFLAGS);

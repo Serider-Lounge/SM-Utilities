@@ -25,7 +25,7 @@ jobs:
     strategy:
       matrix:
         sm-version:
-          - 1.13.7301
+          - 1.13.x
 
     name: Build with SM ${{ matrix.sm-version }}
     outputs:
@@ -83,7 +83,7 @@ jobs:
           mkdir -p build
           for plugin in *.sp; do
             echo "Compiling $plugin..."
-            spcomp -iinclude "$plugin" -o "build/${plugin%.sp}.smx"
+            spcomp -i include "$plugin" -o "build/${plugin%.sp}.smx"
           done
 
       - name: Get commit SHA

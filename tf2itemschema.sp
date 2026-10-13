@@ -20,7 +20,7 @@ public Plugin myinfo =
     name = "TF2 Item Schema",
     author = "Heapons",
     description = "",
-    version = "26w32a",
+    version = "26w42a",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 

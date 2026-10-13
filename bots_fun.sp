@@ -116,7 +116,7 @@ public Plugin myinfo =
     name = "SM Utilities | Bots Fun",
     author = "Heapons",
     description = "An all-in-one bot manager",
-    version = "26w32a",
+    version = "26w42a",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 
