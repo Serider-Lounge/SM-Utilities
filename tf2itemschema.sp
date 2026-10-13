@@ -19,8 +19,8 @@ public Plugin myinfo =
 {
     name = "TF2 Item Schema",
     author = "Heapons",
-    description = "",
-    version = "26w42a",
+    description = "API to manage TF2 items and attributes.",
+    version = "26w42b",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 
@@ -888,6 +888,33 @@ int Native_GiveNamedItem(Handle plugin, int numParams)
 		}
 	}
 
+	if (StrEqual(className, "saxxy", false))
+	{
+		switch (GetEntProp(client, Prop_Send, "m_iClass"))
+		{
+			case 1: strcopy(className, sizeof(className), "tf_weapon_bat");
+			case 3: strcopy(className, sizeof(className), "tf_weapon_shovel");
+			//case 7: strcopy(className, sizeof(className), "tf_weapon_fireaxe");
+			case 4: strcopy(className, sizeof(className), "tf_weapon_bottle");
+			//case 6: strcopy(className, sizeof(className), "tf_weapon_fireaxe");
+			case 9: strcopy(className, sizeof(className), "tf_weapon_wrench");
+			case 5: strcopy(className, sizeof(className), "tf_weapon_bonesaw");
+			case 2: strcopy(className, sizeof(className), "tf_weapon_club");
+			case 8: strcopy(className, sizeof(className), "tf_weapon_knife");
+			case 10:
+			{
+				if (strcmp(g_GameDir, "tf2classified") == 0)
+				{
+					strcopy(className, sizeof(className), "tf2c_weapon_umbrella");
+				}
+				else
+				{
+					strcopy(className, sizeof(className), "tf_weapon_fireaxe");
+				}
+			}
+			default: strcopy(className, sizeof(className), "tf_weapon_fireaxe");
+		}
+	}
 	ArrayList loadout = new ArrayList();
 	for (int i = 0; i < MAX_WEAPONS; i++)
 	{
