@@ -46,6 +46,7 @@ jobs:
           mkdir -p include/navbot
           mkdir -p include/navbot/interfaces
           mkdir -p include/navbot/mods
+          curl -sSL https://github.com/Heapons/sourcepawn-navmesh/raw/refs/heads/master/addons/sourcemod/scripting/include/navmesh.inc -o include/navmesh.inc
           curl -sSL https://raw.githubusercontent.com/Bara/Multi-Colors/refs/heads/master/addons/sourcemod/scripting/include/multicolors.inc -o include/multicolors.inc
           curl -sSL https://raw.githubusercontent.com/Bara/Multi-Colors/refs/heads/master/addons/sourcemod/scripting/include/multicolors/colors.inc -o include/multicolors/colors.inc
           curl -sSL https://raw.githubusercontent.com/Bara/Multi-Colors/refs/heads/master/addons/sourcemod/scripting/include/multicolors/morecolors.inc -o include/multicolors/morecolors.inc
