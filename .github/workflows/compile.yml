@@ -49,7 +49,7 @@ jobs:
           git clone --depth 1 https://github.com/APGRoboCop/rcbot2.git
           git clone --depth 1 https://github.com/caxanga334/NavBot.git
 
-          cp sourcepawn-navmesh/addons/sourcemod/scripting/include/. include/
+          cp -R sourcepawn-navmesh/addons/sourcemod/scripting/include/. include/
           cp -R Multi-Colors/addons/sourcemod/scripting/include/. include/
           cp sm-plugins/addons/sourcemod/scripting/include/trainingmsg.inc include/
           cp -R sm-ext-ripext/pawn/scripting/include/. include/
