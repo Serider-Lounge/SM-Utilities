@@ -20,7 +20,7 @@ public Plugin myinfo =
     name = "TF2 Item Schema",
     author = "Heapons",
     description = "API to manage TF2 items and attributes.",
-    version = "26w42b",
+    version = "26w42c",
     url = "https://github.com/Heapons/SM-Utilities"
 };
 
@@ -681,8 +681,15 @@ bool ResolveClassName(JSONObject root, const char[] itemName, char[] buffer, int
 	}
 
 	char prefab[64];
-	if (!found && item != null && item.GetString("prefab", prefab, sizeof(prefab)) &&
-		prefab[0] != '\0' && root.HasKey("prefabs"))
+	if (!found && item != null && item.GetString("prefab", prefab, sizeof(prefab)))
+	{
+		int space = FindCharInString(prefab, ' ');
+		if (space != -1)
+		{
+			prefab[space] = '\0';
+		}
+
+		if (prefab[0] != '\0' && root.HasKey("prefabs"))
 	{
 		JSONObject prefabs = view_as<JSONObject>(root.Get("prefabs"));
 		if (prefabs != null && prefabs.HasKey(prefab))
@@ -695,6 +702,7 @@ bool ResolveClassName(JSONObject root, const char[] itemName, char[] buffer, int
 			delete prefabObject;
 		}
 		delete prefabs;
+		}
 	}
 
 	if (!found && item != null && ReadClassName(item, buffer, maxlen))
@@ -702,8 +710,15 @@ bool ResolveClassName(JSONObject root, const char[] itemName, char[] buffer, int
 		found = true;
 	}
 
-	if (!found && item != null && item.GetString("prefab", prefab, sizeof(prefab)) &&
-		prefab[0] != '\0' && root.HasKey("prefabs"))
+	if (!found && item != null && item.GetString("prefab", prefab, sizeof(prefab)))
+	{
+		int space = FindCharInString(prefab, ' ');
+		if (space != -1)
+		{
+			prefab[space] = '\0';
+		}
+
+		if (prefab[0] != '\0' && root.HasKey("prefabs"))
 	{
 		JSONObject prefabs = view_as<JSONObject>(root.Get("prefabs"));
 		if (prefabs != null && prefabs.HasKey(prefab))
@@ -713,6 +728,7 @@ bool ResolveClassName(JSONObject root, const char[] itemName, char[] buffer, int
 			delete prefabObject;
 		}
 		delete prefabs;
+		}
 	}
 
 	if (!found)
